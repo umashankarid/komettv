@@ -14,8 +14,11 @@ def generate_thumbnail(source_path: str, filename: str) -> str | None:
         thumb_path = os.path.join(thumb_dir, filename)
 
         with Image.open(source_path) as img:
+            # Convert palette images with transparency to RGBA first
+            if img.mode == "P" and "transparency" in img.info:
+                img = img.convert("RGBA")
             img.thumbnail(THUMBNAIL_SIZE)
-            # Convert RGBA to RGB for JPEG compatibility
+            # Convert RGBA/P to RGB for JPEG compatibility
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
             img.save(thumb_path, quality=85)
