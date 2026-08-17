@@ -130,11 +130,16 @@
         const CLOCK = document.getElementById('clock');
 
         let playlist = [];
+        let expandedPlaylist = []; // Flattened playlist (folders expanded into individual items)
         let currentIndex = -1;
         let currentSlide = null;
         let playlistVersion = '';
         let refreshInterval = 30;
         let advanceTimeout = null;
+
+        // Background music
+        let bgMusic = null;
+        let currentMusicUrl = null;
 
         // --- Clock ---
         function updateClock() {
@@ -149,8 +154,7 @@
             try {
                 const res = await fetch('/api/playlist/player');
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                return data;
+                return await res.json();
             } catch (err) {
                 console.error('Failed to fetch playlist:', err);
                 return null;
@@ -161,12 +165,35 @@
             try {
                 const res = await fetch('/api/playlist/version');
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                return data;
+                return await res.json();
             } catch (err) {
                 console.error('Failed to fetch version:', err);
                 return null;
             }
+        }
+
+        // Expand playlist: folders become multiple items, each tagged with music_url
+        function expandPlaylist(rawPlaylist) {
+            const expanded = [];
+            for (const item of rawPlaylist) {
+                if (item.content_type === 'folder' && item.data.items) {
+                    const musicUrl = item.data.music_url || null;
+                    for (const fi of item.data.items) {
+                        expanded.push({
+                            content_type: fi.media_type, // 'image' or 'video'
+                            duration: item.duration,
+                            data: { url: fi.url, filename: fi.filename },
+                            music_url: musicUrl,
+                        });
+                    }
+                } else {
+                    expanded.push({
+                        ...item,
+                        music_url: null, // Non-folder items have no background music
+                    });
+                }
+            }
+            return expanded;
         }
 
         async function checkForUpdates() {
@@ -180,10 +207,10 @@
                 if (newPlaylist) {
                     playlistVersion = versionData.version;
                     playlist = newPlaylist;
+                    expandedPlaylist = expandPlaylist(playlist);
 
-                    if (playlist.length > 0) {
+                    if (expandedPlaylist.length > 0) {
                         STATUS.classList.add('hidden');
-                        // If player was idle, start playing
                         if (currentIndex === -1) {
                             currentIndex = 0;
                             showSlide(currentIndex);
@@ -194,6 +221,45 @@
                     }
                 }
             }
+        }
+
+        // --- Background Music ---
+        function handleMusic(item) {
+            if (item.content_type === 'video') {
+                // Pause music during video playback
+                if (bgMusic && !bgMusic.paused) {
+                    bgMusic.pause();
+                }
+                return;
+            }
+
+            if (item.music_url) {
+                // Start or continue music for this folder
+                if (currentMusicUrl !== item.music_url) {
+                    // Different music — switch
+                    stopMusic();
+                    bgMusic = new Audio(item.music_url);
+                    bgMusic.loop = true;
+                    bgMusic.volume = 0.7;
+                    bgMusic.play().catch(() => {});
+                    currentMusicUrl = item.music_url;
+                } else if (bgMusic && bgMusic.paused) {
+                    // Same music was paused (after a video) — resume
+                    bgMusic.play().catch(() => {});
+                }
+            } else {
+                // No music for this item — stop any playing music
+                stopMusic();
+            }
+        }
+
+        function stopMusic() {
+            if (bgMusic) {
+                bgMusic.pause();
+                bgMusic.src = '';
+                bgMusic = null;
+            }
+            currentMusicUrl = null;
         }
 
         // --- Slide rendering ---
@@ -207,7 +273,7 @@
                     break;
 
                 case 'video':
-                    slide.innerHTML = `<video src="${item.data.url}" autoplay muted playsinline></video>`;
+                    slide.innerHTML = `<video src="${item.data.url}" autoplay playsinline></video>`;
                     break;
 
                 case 'announcement':
@@ -223,9 +289,9 @@
         }
 
         function showSlide(index) {
-            if (playlist.length === 0) return;
+            if (expandedPlaylist.length === 0) return;
 
-            const item = playlist[index];
+            const item = expandedPlaylist[index];
             const newSlide = createSlide(item);
 
             PLAYER.appendChild(newSlide);
@@ -245,10 +311,13 @@
                     if (oldSlide.parentNode) {
                         oldSlide.parentNode.removeChild(oldSlide);
                     }
-                }, 1000); // Remove after fade completes
+                }, 1000);
             }
 
             currentSlide = newSlide;
+
+            // Handle background music
+            handleMusic(item);
 
             // Schedule next slide
             scheduleNext(item);
@@ -261,27 +330,24 @@
             }
 
             if (item.content_type === 'video') {
-                // For videos, advance when video ends
                 const video = currentSlide.querySelector('video');
                 if (video) {
                     video.addEventListener('ended', advanceSlide, { once: true });
                     video.addEventListener('error', () => {
-                        // If video fails to load, skip after 5 seconds
                         advanceTimeout = setTimeout(advanceSlide, 5000);
                     }, { once: true });
                 } else {
                     advanceTimeout = setTimeout(advanceSlide, 5000);
                 }
             } else {
-                // Timed slides
                 const duration = item.duration * 1000;
                 advanceTimeout = setTimeout(advanceSlide, duration);
             }
         }
 
         function advanceSlide() {
-            if (playlist.length === 0) return;
-            currentIndex = (currentIndex + 1) % playlist.length;
+            if (expandedPlaylist.length === 0) return;
+            currentIndex = (currentIndex + 1) % expandedPlaylist.length;
             showSlide(currentIndex);
         }
 
@@ -294,16 +360,14 @@
 
         // --- Initialization ---
         async function init() {
-            // Initial load
             await checkForUpdates();
 
-            // Periodic refresh check
             setInterval(() => {
                 checkForUpdates();
             }, refreshInterval * 1000);
         }
 
-        // Prevent screen from sleeping (if supported)
+        // Prevent screen from sleeping
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
@@ -314,7 +378,6 @@
             }
         }
 
-        // Re-request wake lock when page becomes visible again
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 requestWakeLock();

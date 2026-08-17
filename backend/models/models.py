@@ -17,6 +17,7 @@ class ContentType(str, enum.Enum):
     IMAGE = "image"
     VIDEO = "video"
     ANNOUNCEMENT = "announcement"
+    FOLDER = "folder"
 
 
 class Admin(Base):
@@ -57,8 +58,33 @@ class PlaylistItem(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     content_type = Column(SAEnum(ContentType), nullable=False)
-    content_id = Column(Integer, nullable=False)  # References media.id, announcement.id, or sponsor.id
+    content_id = Column(Integer, nullable=False)  # References media.id, announcement.id, or folder.id
     position = Column(Integer, nullable=False)  # Order in playlist
     active = Column(Boolean, default=True)
     duration = Column(Integer, nullable=True)  # Override duration in seconds (null = use default)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class Folder(Base):
+    __tablename__ = "folders"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False)
+    music_filename = Column(String(255), nullable=True)
+    music_path = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class FolderItem(Base):
+    __tablename__ = "folder_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    folder_id = Column(Integer, nullable=False, index=True)
+    filename = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    media_type = Column(SAEnum(MediaType), nullable=False)  # image or video
+    file_path = Column(String(500), nullable=False)
+    thumbnail_path = Column(String(500), nullable=True)
+    file_size = Column(Integer, nullable=False)
+    position = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

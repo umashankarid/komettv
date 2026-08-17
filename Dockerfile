@@ -14,7 +14,7 @@ COPY backend ./backend
 COPY player ./player
 COPY admin ./admin
 
-RUN mkdir -p /app/data /app/media/images /app/media/videos /app/media/thumbnails
+RUN mkdir -p /app/data /app/media/images /app/media/videos /app/media/folders /app/media/music /app/media/thumbnails
 
 EXPOSE 8000
 

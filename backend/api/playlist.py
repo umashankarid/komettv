@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import settings
 from backend.database import get_db
 from backend.models.models import (
-    PlaylistItem, ContentType, Media, Announcement, MediaType,
+    PlaylistItem, ContentType, Media, Announcement, MediaType, Folder, FolderItem,
 )
 from backend.api.auth import get_current_admin, Admin
 
@@ -206,6 +206,8 @@ async def _validate_content_exists(db: AsyncSession, content_type: ContentType, 
         result = await db.execute(select(Media).where(Media.id == content_id))
     elif content_type == ContentType.ANNOUNCEMENT:
         result = await db.execute(select(Announcement).where(Announcement.id == content_id))
+    elif content_type == ContentType.FOLDER:
+        result = await db.execute(select(Folder).where(Folder.id == content_id))
     else:
         raise HTTPException(status_code=400, detail="Invalid content type")
 
@@ -233,6 +235,34 @@ async def _resolve_content(db: AsyncSession, item: PlaylistItem) -> dict | None:
             "title": announcement.title,
             "content": announcement.content,
         }
+    elif item.content_type == ContentType.FOLDER:
+        result = await db.execute(select(Folder).where(Folder.id == item.content_id))
+        folder = result.scalar_one_or_none()
+        if not folder:
+            return None
+
+        # Get folder items
+        items_result = await db.execute(
+            select(FolderItem)
+            .where(FolderItem.folder_id == folder.id)
+            .order_by(FolderItem.position)
+        )
+        folder_items = items_result.scalars().all()
+        if not folder_items:
+            return None
+
+        return {
+            "name": folder.name,
+            "music_url": folder.music_path,
+            "items": [
+                {
+                    "url": fi.file_path,
+                    "filename": fi.original_filename,
+                    "media_type": fi.media_type.value,
+                }
+                for fi in folder_items
+            ],
+        }
     return None
 
 
@@ -243,4 +273,6 @@ def _get_default_duration(content_type: ContentType) -> int:
         return settings.DISPLAY_DURATION_ANNOUNCEMENT
     elif content_type == ContentType.VIDEO:
         return 0  # 0 means play to completion
+    elif content_type == ContentType.FOLDER:
+        return settings.DISPLAY_DURATION_IMAGE  # Per-item duration within folder
     return 10

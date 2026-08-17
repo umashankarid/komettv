@@ -399,6 +399,7 @@
         <nav class="sidebar">
             <a href="#" data-section="dashboard" class="active">📊 Dashboard</a>
             <a href="#" data-section="media">🖼️ Media</a>
+            <a href="#" data-section="folders">📁 Folders</a>
             <a href="#" data-section="announcements">📢 Announcements</a>
             <a href="#" data-section="playlist">📋 Playlist</a>
             <a href="#" data-section="admins">👤 Admins</a>
@@ -452,6 +453,16 @@
             </section>
 
             <!-- Announcements -->
+            <!-- Folders -->
+            <section id="section-folders" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>Folders</h2>
+                    <button class="btn btn-primary" onclick="showModal('folder-create-modal')">+ New Folder</button>
+                </div>
+                <div id="folders-list"></div>
+                <div id="folders-empty" class="empty-state" style="display:none;">No folders created yet.</div>
+            </section>
+
             <section id="section-announcements" class="section-hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h2>Announcements</h2>
@@ -571,6 +582,7 @@
                         <option value="image">Image</option>
                         <option value="video">Video</option>
                         <option value="announcement">Announcement</option>
+                        <option value="folder">Folder</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -608,6 +620,41 @@
     </div>
 
     <script>
+
+    <div class="modal-overlay" id="folder-create-modal">
+        <div class="modal">
+            <h2>New Folder</h2>
+            <form id="folder-create-form">
+                <div class="form-group">
+                    <label>Folder Name</label>
+                    <input type="text" id="folder-name" required placeholder="e.g. Tournament 2026">
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Create</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('folder-create-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="folder-upload-modal">
+        <div class="modal">
+            <h2>Upload to Folder</h2>
+            <form id="folder-upload-form">
+                <input type="hidden" id="folder-upload-id">
+                <div class="form-group">
+                    <label>Choose files (JPG, PNG, WEBP, MP4, MP3)</label>
+                    <input type="file" id="folder-upload-file" accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3" multiple required>
+                </div>
+                <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:12px;">Upload images, videos, and one MP3 music file. Music plays as background during image slides.</p>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('folder-upload-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
         // --- State ---
         let token = localStorage.getItem('komet_token') || '';
         let currentSection = 'dashboard';
@@ -715,6 +762,7 @@
             switch (section) {
                 case 'dashboard': loadDashboard(); break;
                 case 'media': loadMedia(); break;
+                case 'folders': loadFolders(); break;
                 case 'announcements': loadAnnouncements(); break;
                 case 'playlist': loadPlaylist(); break;
                 case 'admins': loadAdmins(); break;
@@ -899,6 +947,147 @@
             } catch (err) { toast(err.message, 'error'); }
         }
 
+        // --- Folders ---
+        async function loadFolders() {
+            try {
+                const folders = await api('/folders');
+                const container = document.getElementById('folders-list');
+                const empty = document.getElementById('folders-empty');
+
+                if (folders.length === 0) {
+                    container.innerHTML = '';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                container.innerHTML = folders.map(f => `
+                    <div class="card" style="margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <div>
+                                <strong style="font-size:1.1rem;">📁 ${escapeHtml(f.name)}</strong>
+                                <span style="margin-left:12px; font-size:0.85rem; color:var(--gray-500);">${f.item_count} item${f.item_count !== 1 ? 's' : ''}</span>
+                                ${f.music_filename ? `<span style="margin-left:8px;" title="${escapeHtml(f.music_filename)}">🎵</span>` : ''}
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-primary btn-sm" onclick="openFolderUpload(${f.id})">+ Upload</button>
+                                <button class="btn btn-secondary btn-sm" onclick="viewFolderItems(${f.id}, '${escapeHtml(f.name)}')">View Items</button>
+                                ${f.music_filename ? `<button class="btn btn-secondary btn-sm" onclick="deleteFolderMusic(${f.id})">Remove Music</button>` : ''}
+                                <button class="btn btn-danger btn-sm" onclick="deleteFolder(${f.id})">Delete</button>
+                            </div>
+                        </div>
+                        <div id="folder-items-${f.id}" style="display:none;"></div>
+                    </div>
+                `).join('');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        document.getElementById('folder-create-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('folder-name').value;
+            try {
+                await api('/folders', { method: 'POST', body: { name } });
+                toast('Folder created!', 'success');
+                hideModal('folder-create-modal');
+                document.getElementById('folder-create-form').reset();
+                loadFolders();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        function openFolderUpload(folderId) {
+            document.getElementById('folder-upload-id').value = folderId;
+            document.getElementById('folder-upload-file').value = '';
+            showModal('folder-upload-modal');
+        }
+
+        document.getElementById('folder-upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const folderId = document.getElementById('folder-upload-id').value;
+            const files = document.getElementById('folder-upload-file').files;
+            if (!files.length) return;
+
+            let uploaded = 0;
+            let errors = 0;
+
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    await api(`/folders/${folderId}/upload`, { method: 'POST', body: formData });
+                    uploaded++;
+                } catch (err) {
+                    errors++;
+                    console.error(`Failed to upload ${file.name}:`, err);
+                }
+            }
+
+            hideModal('folder-upload-modal');
+            if (errors > 0) {
+                toast(`Uploaded ${uploaded} files, ${errors} failed`, 'error');
+            } else {
+                toast(`${uploaded} file${uploaded > 1 ? 's' : ''} uploaded!`, 'success');
+            }
+            loadFolders();
+        });
+
+        async function viewFolderItems(folderId, folderName) {
+            const container = document.getElementById(`folder-items-${folderId}`);
+            if (container.style.display !== 'none') {
+                container.style.display = 'none';
+                return;
+            }
+
+            try {
+                const items = await api(`/folders/${folderId}/items`);
+                if (items.length === 0) {
+                    container.innerHTML = '<p style="color:var(--gray-500); font-size:0.85rem; padding:8px 0;">No items in this folder.</p>';
+                } else {
+                    container.innerHTML = `
+                        <table>
+                            <thead><tr><th>Preview</th><th>Filename</th><th>Type</th><th>Actions</th></tr></thead>
+                            <tbody>${items.map(item => `
+                                <tr>
+                                    <td>${item.thumbnail_path ? `<img class="thumbnail" src="${item.thumbnail_path}">` : `<div class="thumbnail" style="display:flex;align-items:center;justify-content:center;">${item.media_type === 'video' ? '🎬' : '🖼️'}</div>`}</td>
+                                    <td>${escapeHtml(item.original_filename)}</td>
+                                    <td><span class="badge ${item.media_type === 'image' ? 'badge-blue' : 'badge-green'}">${item.media_type === 'image' ? 'Image' : 'Video'}</span></td>
+                                    <td><button class="btn btn-danger btn-sm" onclick="deleteFolderItem(${folderId}, ${item.id})">Delete</button></td>
+                                </tr>
+                            `).join('')}</tbody>
+                        </table>
+                    `;
+                }
+                container.style.display = 'block';
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function deleteFolderItem(folderId, itemId) {
+            if (!confirm('Delete this item from the folder?')) return;
+            try {
+                await api(`/folders/${folderId}/items/${itemId}`, { method: 'DELETE' });
+                toast('Item deleted', 'success');
+                viewFolderItems(folderId, '');
+                loadFolders();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function deleteFolderMusic(folderId) {
+            if (!confirm('Remove background music from this folder?')) return;
+            try {
+                await api(`/folders/${folderId}/music`, { method: 'DELETE' });
+                toast('Music removed', 'success');
+                loadFolders();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function deleteFolder(id) {
+            if (!confirm('Delete this folder and all its contents?')) return;
+            try {
+                await api(`/folders/${id}`, { method: 'DELETE' });
+                toast('Folder deleted', 'success');
+                loadFolders();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
         // --- Playlist ---
         async function loadPlaylist() {
             try {
@@ -957,6 +1146,9 @@
                 } else if (type === 'announcement') {
                     const announcements = await api('/announcements');
                     items = announcements.map(a => ({ id: a.id, name: a.title }));
+                } else if (type === 'folder') {
+                    const folders = await api('/folders');
+                    items = folders.map(f => ({ id: f.id, name: `${f.name} (${f.item_count} items${f.music_filename ? ' + 🎵' : ''})` }));
                 }
 
                 if (items.length === 0) {
@@ -1003,7 +1195,7 @@
         }
 
         function getDefaultDuration(type) {
-            const defaults = { image: 5, video: 0, announcement: 15 };
+            const defaults = { image: 5, video: 0, announcement: 15, folder: 5 };
             return defaults[type] || 10;
         }
 
@@ -1129,7 +1321,7 @@
         }
 
         function getContentTypeName(type) {
-            const names = { image: 'Image', video: 'Video', announcement: 'Announcement' };
+            const names = { image: 'Image', video: 'Video', announcement: 'Announcement', folder: 'Folder' };
             return names[type] || type;
         }
 

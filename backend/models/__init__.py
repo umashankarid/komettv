@@ -6,6 +6,8 @@ from backend.models.models import (
     Announcement,
     PlaylistItem,
     ContentType,
+    Folder,
+    FolderItem,
 )
 
 __all__ = [
@@ -16,4 +18,6 @@ __all__ = [
     "Announcement",
     "PlaylistItem",
     "ContentType",
+    "Folder",
+    "FolderItem",
 ]
