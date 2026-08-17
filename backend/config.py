@@ -16,7 +16,6 @@ class Settings:
 
     DISPLAY_DURATION_IMAGE: int = int(os.getenv("DISPLAY_DURATION_IMAGE", "5"))
     DISPLAY_DURATION_ANNOUNCEMENT: int = int(os.getenv("DISPLAY_DURATION_ANNOUNCEMENT", "15"))
-    DISPLAY_DURATION_SPONSOR: int = int(os.getenv("DISPLAY_DURATION_SPONSOR", "10"))
 
     MAX_IMAGE_SIZE: int = int(os.getenv("MAX_IMAGE_SIZE", "10485760"))
     MAX_VIDEO_SIZE: int = int(os.getenv("MAX_VIDEO_SIZE", "209715200"))

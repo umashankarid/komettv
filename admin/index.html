@@ -400,7 +400,6 @@
             <a href="#" data-section="dashboard" class="active">📊 Dashboard</a>
             <a href="#" data-section="media">🖼️ Media</a>
             <a href="#" data-section="announcements">📢 Announcements</a>
-            <a href="#" data-section="sponsors">🤝 Sponsors</a>
             <a href="#" data-section="playlist">📋 Playlist</a>
             <a href="#" data-section="admins">👤 Admins</a>
         </nav>
@@ -471,28 +470,6 @@
                         <tbody id="announcements-table"></tbody>
                     </table>
                     <div id="announcements-empty" class="empty-state" style="display:none;">No announcements created.</div>
-                </div>
-            </section>
-
-            <!-- Sponsors -->
-            <section id="section-sponsors" class="section-hidden">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h2>Sponsors</h2>
-                    <button class="btn btn-primary" onclick="showModal('sponsor-modal')">+ Add Sponsor</button>
-                </div>
-                <div class="card">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Logo</th>
-                                <th>Name</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sponsors-table"></tbody>
-                    </table>
-                    <div id="sponsors-empty" class="empty-state" style="display:none;">No sponsors added.</div>
                 </div>
             </section>
 
@@ -583,26 +560,6 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="sponsor-modal">
-        <div class="modal">
-            <h2>Add Sponsor</h2>
-            <form id="sponsor-form">
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" id="sponsor-name" required>
-                </div>
-                <div class="form-group">
-                    <label>Logo (JPG, PNG, WEBP)</label>
-                    <input type="file" id="sponsor-logo" accept=".jpg,.jpeg,.png,.webp" required>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button type="submit" class="btn btn-primary">Save</button>
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('sponsor-modal')">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <div class="modal-overlay" id="playlist-add-modal">
         <div class="modal">
             <h2>Add to Playlist</h2>
@@ -614,7 +571,6 @@
                         <option value="image">Image</option>
                         <option value="video">Video</option>
                         <option value="announcement">Announcement</option>
-                        <option value="sponsor">Sponsor</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -760,7 +716,6 @@
                 case 'dashboard': loadDashboard(); break;
                 case 'media': loadMedia(); break;
                 case 'announcements': loadAnnouncements(); break;
-                case 'sponsors': loadSponsors(); break;
                 case 'playlist': loadPlaylist(); break;
                 case 'admins': loadAdmins(); break;
             }
@@ -780,10 +735,9 @@
         // --- Dashboard ---
         async function loadDashboard() {
             try {
-                const [media, announcements, sponsors, playlist] = await Promise.all([
+                const [media, announcements, playlist] = await Promise.all([
                     api('/media'),
                     api('/announcements'),
-                    api('/sponsors'),
                     api('/playlist'),
                 ]);
 
@@ -794,7 +748,6 @@
                     <div class="stat-card"><div class="stat-value">${images}</div><div class="stat-label">Images</div></div>
                     <div class="stat-card"><div class="stat-value">${videos}</div><div class="stat-label">Videos</div></div>
                     <div class="stat-card"><div class="stat-value">${announcements.length}</div><div class="stat-label">Announcements</div></div>
-                    <div class="stat-card"><div class="stat-value">${sponsors.length}</div><div class="stat-label">Sponsors</div></div>
                     <div class="stat-card"><div class="stat-value">${playlist.length}</div><div class="stat-label">In Playlist</div></div>
                 `;
             } catch (err) {
@@ -946,61 +899,6 @@
             } catch (err) { toast(err.message, 'error'); }
         }
 
-        // --- Sponsors ---
-        async function loadSponsors() {
-            try {
-                const sponsors = await api('/sponsors');
-                const table = document.getElementById('sponsors-table');
-                const empty = document.getElementById('sponsors-empty');
-
-                if (sponsors.length === 0) {
-                    table.innerHTML = '';
-                    empty.style.display = 'block';
-                    return;
-                }
-
-                empty.style.display = 'none';
-                table.innerHTML = sponsors.map(s => `
-                    <tr>
-                        <td>${s.thumbnail_path ? `<img class="thumbnail" src="${s.thumbnail_path}">` : `<img class="thumbnail" src="${s.logo_path}">`}</td>
-                        <td><strong>${escapeHtml(s.name)}</strong></td>
-                        <td><span class="badge ${s.active ? 'badge-green' : 'badge-gray'}">${s.active ? 'Active' : 'Inactive'}</span></td>
-                        <td class="actions">
-                            <button class="btn btn-danger btn-sm" onclick="deleteSponsor(${s.id})">Delete</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (err) { toast(err.message, 'error'); }
-        }
-
-        document.getElementById('sponsor-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('sponsor-name').value;
-            const logo = document.getElementById('sponsor-logo').files[0];
-            if (!logo) return;
-
-            const formData = new FormData();
-            formData.append('name', name);
-            formData.append('logo', logo);
-
-            try {
-                await api('/sponsors', { method: 'POST', body: formData });
-                toast('Sponsor added!', 'success');
-                hideModal('sponsor-modal');
-                document.getElementById('sponsor-form').reset();
-                loadSponsors();
-            } catch (err) { toast(err.message, 'error'); }
-        });
-
-        async function deleteSponsor(id) {
-            if (!confirm('Delete this sponsor?')) return;
-            try {
-                await api(`/sponsors/${id}`, { method: 'DELETE' });
-                toast('Sponsor deleted', 'success');
-                loadSponsors();
-            } catch (err) { toast(err.message, 'error'); }
-        }
-
         // --- Playlist ---
         async function loadPlaylist() {
             try {
@@ -1020,10 +918,18 @@
                         <span class="drag-handle">☰</span>
                         <div class="item-info">
                             <div class="item-name">${getContentTypeName(item.content_type)} #${item.content_id}</div>
-                            <div class="item-type">${getContentTypeName(item.content_type)} · ${item.duration || 'Default'} sec · ${item.active ? 'Active' : 'Inactive'}</div>
+                            <div class="item-type">${getContentTypeName(item.content_type)} · ${item.active ? 'Active' : 'Inactive'}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            <input type="number" min="1" max="300" value="${item.duration || getDefaultDuration(item.content_type)}" 
+                                style="width:60px; padding:4px 6px; border:1px solid var(--gray-300); border-radius:4px; font-size:0.85rem; text-align:center;"
+                                onchange="updateItemDuration(${item.id}, this.value)"
+                                title="Display duration in seconds"
+                                ${item.content_type === 'video' ? 'disabled' : ''}>
+                            <span style="font-size:0.75rem; color:var(--gray-500);">${item.content_type === 'video' ? 'auto' : 'sec'}</span>
                         </div>
                         <div class="actions">
-                            <button class="btn btn-${item.active ? 'secondary' : 'success'} btn-sm" onclick="togglePlaylistItem(${item.id}, ${!item.active})">${item.active ? 'Av' : 'På'}</button>
+                            <button class="btn btn-${item.active ? 'secondary' : 'success'} btn-sm" onclick="togglePlaylistItem(${item.id}, ${!item.active})">${item.active ? 'Off' : 'On'}</button>
                             <button class="btn btn-danger btn-sm" onclick="deletePlaylistItem(${item.id})">✕</button>
                         </div>
                     </div>
@@ -1051,9 +957,6 @@
                 } else if (type === 'announcement') {
                     const announcements = await api('/announcements');
                     items = announcements.map(a => ({ id: a.id, name: a.title }));
-                } else if (type === 'sponsor') {
-                    const sponsors = await api('/sponsors');
-                    items = sponsors.map(s => ({ id: s.id, name: s.name }));
                 }
 
                 if (items.length === 0) {
@@ -1088,6 +991,20 @@
                 await api(`/playlist/${id}`, { method: 'PUT', body: { active } });
                 loadPlaylist();
             } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function updateItemDuration(id, duration) {
+            const dur = parseInt(duration);
+            if (isNaN(dur) || dur < 1) return;
+            try {
+                await api(`/playlist/${id}`, { method: 'PUT', body: { duration: dur } });
+                toast('Duration updated!', 'success');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        function getDefaultDuration(type) {
+            const defaults = { image: 5, video: 0, announcement: 15 };
+            return defaults[type] || 10;
         }
 
         async function deletePlaylistItem(id) {
@@ -1212,7 +1129,7 @@
         }
 
         function getContentTypeName(type) {
-            const names = { image: 'Image', video: 'Video', announcement: 'Announcement', sponsor: 'Sponsor' };
+            const names = { image: 'Image', video: 'Video', announcement: 'Announcement' };
             return names[type] || type;
         }
 

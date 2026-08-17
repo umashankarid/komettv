@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import settings
 from backend.database import get_db
 from backend.models.models import (
-    PlaylistItem, ContentType, Media, Announcement, Sponsor, MediaType,
+    PlaylistItem, ContentType, Media, Announcement, MediaType,
 )
 from backend.api.auth import get_current_admin, Admin
 
@@ -206,8 +206,6 @@ async def _validate_content_exists(db: AsyncSession, content_type: ContentType, 
         result = await db.execute(select(Media).where(Media.id == content_id))
     elif content_type == ContentType.ANNOUNCEMENT:
         result = await db.execute(select(Announcement).where(Announcement.id == content_id))
-    elif content_type == ContentType.SPONSOR:
-        result = await db.execute(select(Sponsor).where(Sponsor.id == content_id))
     else:
         raise HTTPException(status_code=400, detail="Invalid content type")
 
@@ -235,15 +233,6 @@ async def _resolve_content(db: AsyncSession, item: PlaylistItem) -> dict | None:
             "title": announcement.title,
             "content": announcement.content,
         }
-    elif item.content_type == ContentType.SPONSOR:
-        result = await db.execute(select(Sponsor).where(Sponsor.id == item.content_id))
-        sponsor = result.scalar_one_or_none()
-        if not sponsor or not sponsor.active:
-            return None
-        return {
-            "name": sponsor.name,
-            "logo_url": sponsor.logo_path,
-        }
     return None
 
 
@@ -252,8 +241,6 @@ def _get_default_duration(content_type: ContentType) -> int:
         return settings.DISPLAY_DURATION_IMAGE
     elif content_type == ContentType.ANNOUNCEMENT:
         return settings.DISPLAY_DURATION_ANNOUNCEMENT
-    elif content_type == ContentType.SPONSOR:
-        return settings.DISPLAY_DURATION_SPONSOR
     elif content_type == ContentType.VIDEO:
         return 0  # 0 means play to completion
     return 10

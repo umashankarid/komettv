@@ -86,34 +86,6 @@
         .slide-announcement .announcement-content h2 { font-size: 3rem; margin-bottom: 15px; }
         .slide-announcement .announcement-content p { margin-bottom: 15px; }
 
-        /* Sponsor slides */
-        .slide-sponsor {
-            background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
-            flex-direction: column;
-            padding: 60px;
-        }
-
-        .slide-sponsor .sponsor-label {
-            font-size: 1.5rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-bottom: 30px;
-        }
-
-        .slide-sponsor img {
-            max-width: 70%;
-            max-height: 60%;
-            object-fit: contain;
-        }
-
-        .slide-sponsor .sponsor-name {
-            font-size: 2.5rem;
-            color: #333;
-            margin-top: 30px;
-            font-weight: 600;
-        }
-
         /* Loading / Empty state */
         #status {
             position: absolute;
@@ -243,15 +215,6 @@
                     slide.innerHTML = `
                         <div class="announcement-title">${escapeHtml(item.data.title)}</div>
                         <div class="announcement-content">${item.data.content}</div>
-                    `;
-                    break;
-
-                case 'sponsor':
-                    slide.classList.add('slide-sponsor');
-                    slide.innerHTML = `
-                        <div class="sponsor-label">Sponsor</div>
-                        <img src="${item.data.logo_url}" alt="${escapeHtml(item.data.name)}" />
-                        <div class="sponsor-name">${escapeHtml(item.data.name)}</div>
                     `;
                     break;
             }

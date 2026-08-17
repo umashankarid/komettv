@@ -4,7 +4,6 @@ from backend.models.models import (
     Media,
     MediaType,
     Announcement,
-    Sponsor,
     PlaylistItem,
     ContentType,
 )
@@ -15,7 +14,6 @@ __all__ = [
     "Media",
     "MediaType",
     "Announcement",
-    "Sponsor",
     "PlaylistItem",
     "ContentType",
 ]

@@ -17,7 +17,6 @@ class ContentType(str, enum.Enum):
     IMAGE = "image"
     VIDEO = "video"
     ANNOUNCEMENT = "announcement"
-    SPONSOR = "sponsor"
 
 
 class Admin(Base):
@@ -51,18 +50,6 @@ class Announcement(Base):
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
-
-
-class Sponsor(Base):
-    __tablename__ = "sponsors"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(200), nullable=False)
-    logo_filename = Column(String(255), nullable=False)
-    logo_path = Column(String(500), nullable=False)
-    thumbnail_path = Column(String(500), nullable=True)
-    active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
 class PlaylistItem(Base):
