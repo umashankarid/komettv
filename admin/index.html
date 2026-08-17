@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Komet TV Admin</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --danger: #dc2626;
+            --danger-dark: #b91c1c;
+            --success: #16a34a;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+            --radius: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            min-height: 100vh;
+        }
+
+        /* --- Login Screen --- */
+        #login-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+        }
+
+        .login-box {
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-box h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 1.8rem;
+        }
+
+        .login-box p {
+            text-align: center;
+            color: var(--gray-500);
+            margin-bottom: 30px;
+        }
+
+        /* --- App Layout --- */
+        #app {
+            display: none;
+        }
+
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .topbar h1 {
+            font-size: 1.3rem;
+            color: var(--primary);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 57px;
+            bottom: 0;
+            width: 220px;
+            background: #fff;
+            border-right: 1px solid var(--gray-200);
+            padding: 16px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 10px 24px;
+            color: var(--gray-700);
+            text-decoration: none;
+            font-size: 0.95rem;
+            border-left: 3px solid transparent;
+            transition: all 0.15s;
+        }
+
+        .sidebar a:hover {
+            background: var(--gray-50);
+            color: var(--primary);
+        }
+
+        .sidebar a.active {
+            background: var(--gray-100);
+            color: var(--primary);
+            border-left-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .main-content {
+            margin-left: 220px;
+            padding: 24px;
+            min-height: calc(100vh - 57px);
+        }
+
+        /* --- Common Components --- */
+        .card {
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+            color: var(--gray-900);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: var(--danger-dark); }
+        .btn-secondary { background: var(--gray-200); color: var(--gray-700); }
+        .btn-secondary:hover { background: var(--gray-300); }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+        .btn-success { background: var(--success); color: #fff; }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.15s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        table th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+
+        table tr:hover {
+            background: var(--gray-50);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-green { background: #dcfce7; color: #166534; }
+        .badge-gray { background: var(--gray-200); color: var(--gray-700); }
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: var(--gray-900);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.error { background: var(--danger); }
+        .toast.success { background: var(--success); }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-500);
+        }
+
+        .thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: var(--gray-100);
+        }
+
+        .actions { display: flex; gap: 6px; }
+
+        .drag-handle {
+            cursor: grab;
+            color: var(--gray-500);
+            padding: 4px;
+            user-select: none;
+        }
+
+        .drag-handle:active { cursor: grabbing; }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .playlist-item.dragging {
+            opacity: 0.5;
+            border-color: var(--primary);
+        }
+
+        .playlist-item .item-info { flex: 1; }
+        .playlist-item .item-type { font-size: 0.8rem; color: var(--gray-500); }
+        .playlist-item .item-name { font-weight: 500; }
+
+        .section-hidden { display: none; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal h2 { margin-bottom: 20px; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h1>⚽ Komet TV</h1>
+            <p>Admin Panel</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Användarnamn</label>
+                    <input type="text" id="login-username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Lösenord</label>
+                    <input type="password" id="login-password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:1rem;">Logga in</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- App -->
+    <div id="app">
+        <div class="topbar">
+            <h1>⚽ Komet TV Admin</h1>
+            <div class="topbar-right">
+                <span id="current-user"></span>
+                <a href="/display/main" target="_blank" class="btn btn-secondary btn-sm">📺 Visa TV</a>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Logga ut</button>
+            </div>
+        </div>
+
+        <nav class="sidebar">
+            <a href="#" data-section="dashboard" class="active">📊 Dashboard</a>
+            <a href="#" data-section="media">🖼️ Media</a>
+            <a href="#" data-section="announcements">📢 Meddelanden</a>
+            <a href="#" data-section="sponsors">🤝 Sponsorer</a>
+            <a href="#" data-section="playlist">📋 Spellista</a>
+            <a href="#" data-section="admins">👤 Admins</a>
+        </nav>
+
+        <main class="main-content">
+            <!-- Dashboard -->
+            <section id="section-dashboard">
+                <h2 style="margin-bottom:20px;">Dashboard</h2>
+                <div class="stats-grid" id="stats-grid"></div>
+                <div class="card">
+                    <h2>Snabblänkar</h2>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="navigate('media')">Ladda upp media</button>
+                        <button class="btn btn-primary" onclick="navigate('announcements')">Nytt meddelande</button>
+                        <button class="btn btn-primary" onclick="navigate('playlist')">Hantera spellista</button>
+                        <a href="/display/main" target="_blank" class="btn btn-success">📺 Öppna TV Player</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Media -->
+            <section id="section-media" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>Media</h2>
+                    <button class="btn btn-primary" onclick="showModal('upload-modal')">+ Ladda upp</button>
+                </div>
+                <div class="card">
+                    <div style="margin-bottom:12px;">
+                        <select id="media-filter" onchange="loadMedia()" style="padding:8px 12px; border:1px solid var(--gray-300); border-radius:6px;">
+                            <option value="">Alla</option>
+                            <option value="image">Bilder</option>
+                            <option value="video">Videos</option>
+                        </select>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Förhandsvisning</th>
+                                <th>Filnamn</th>
+                                <th>Typ</th>
+                                <th>Storlek</th>
+                                <th>Datum</th>
+                                <th>Åtgärder</th>
+                            </tr>
+                        </thead>
+                        <tbody id="media-table"></tbody>
+                    </table>
+                    <div id="media-empty" class="empty-state" style="display:none;">Ingen media uppladdad ännu.</div>
+                </div>
+            </section>
+
+            <!-- Announcements -->
+            <section id="section-announcements" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>Meddelanden</h2>
+                    <button class="btn btn-primary" onclick="showAnnouncementForm()">+ Nytt meddelande</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Titel</th>
+                                <th>Status</th>
+                                <th>Skapad</th>
+                                <th>Åtgärder</th>
+                            </tr>
+                        </thead>
+                        <tbody id="announcements-table"></tbody>
+                    </table>
+                    <div id="announcements-empty" class="empty-state" style="display:none;">Inga meddelanden skapade.</div>
+                </div>
+            </section>
+
+            <!-- Sponsors -->
+            <section id="section-sponsors" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>Sponsorer</h2>
+                    <button class="btn btn-primary" onclick="showModal('sponsor-modal')">+ Lägg till sponsor</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Logo</th>
+                                <th>Namn</th>
+                                <th>Status</th>
+                                <th>Åtgärder</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sponsors-table"></tbody>
+                    </table>
+                    <div id="sponsors-empty" class="empty-state" style="display:none;">Inga sponsorer tillagda.</div>
+                </div>
+            </section>
+
+            <!-- Playlist -->
+            <section id="section-playlist" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>Spellista</h2>
+                    <button class="btn btn-primary" onclick="showModal('playlist-add-modal')">+ Lägg till</button>
+                </div>
+                <div class="card">
+                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Dra och släpp för att ändra ordning. Ändringar syns på TV:n inom 30 sekunder.</p>
+                    <div id="playlist-items"></div>
+                    <div id="playlist-empty" class="empty-state" style="display:none;">Spellistan är tom. Lägg till innehåll ovan.</div>
+                </div>
+            </section>
+
+            <!-- Admins -->
+            <section id="section-admins" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>Administratörer</h2>
+                    <button class="btn btn-primary" onclick="showModal('admin-modal')">+ Ny admin</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Användarnamn</th>
+                                <th>Skapad</th>
+                                <th>Åtgärder</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admins-table"></tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <h2>Ändra lösenord</h2>
+                    <form id="change-password-form">
+                        <div class="form-group">
+                            <label>Nuvarande lösenord</label>
+                            <input type="password" id="current-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nytt lösenord</label>
+                            <input type="password" id="new-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Ändra lösenord</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="upload-modal">
+        <div class="modal">
+            <h2>Ladda upp media</h2>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label>Välj fil (JPG, PNG, WEBP, MP4)</label>
+                    <input type="file" id="upload-file" accept=".jpg,.jpeg,.png,.webp,.mp4" required>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Ladda upp</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('upload-modal')">Avbryt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="announcement-modal">
+        <div class="modal">
+            <h2 id="announcement-modal-title">Nytt meddelande</h2>
+            <form id="announcement-form">
+                <input type="hidden" id="announcement-id">
+                <div class="form-group">
+                    <label>Titel</label>
+                    <input type="text" id="announcement-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Innehåll (HTML)</label>
+                    <textarea id="announcement-content" required placeholder="<h1>Rubrik</h1><p>Text här...</p>"></textarea>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Spara</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('announcement-modal')">Avbryt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="sponsor-modal">
+        <div class="modal">
+            <h2>Lägg till sponsor</h2>
+            <form id="sponsor-form">
+                <div class="form-group">
+                    <label>Namn</label>
+                    <input type="text" id="sponsor-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Logo (JPG, PNG, WEBP)</label>
+                    <input type="file" id="sponsor-logo" accept=".jpg,.jpeg,.png,.webp" required>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Spara</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('sponsor-modal')">Avbryt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="playlist-add-modal">
+        <div class="modal">
+            <h2>Lägg till i spellistan</h2>
+            <form id="playlist-add-form">
+                <div class="form-group">
+                    <label>Typ</label>
+                    <select id="playlist-content-type" onchange="loadPlaylistContentOptions()" required>
+                        <option value="">Välj typ...</option>
+                        <option value="image">Bild</option>
+                        <option value="video">Video</option>
+                        <option value="announcement">Meddelande</option>
+                        <option value="sponsor">Sponsor</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Innehåll</label>
+                    <select id="playlist-content-id" required>
+                        <option value="">Välj typ först...</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Lägg till</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('playlist-add-modal')">Avbryt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="admin-modal">
+        <div class="modal">
+            <h2>Ny administratör</h2>
+            <form id="admin-form">
+                <div class="form-group">
+                    <label>Användarnamn</label>
+                    <input type="text" id="admin-username" required>
+                </div>
+                <div class="form-group">
+                    <label>Lösenord</label>
+                    <input type="password" id="admin-password" required>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Skapa</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('admin-modal')">Avbryt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let token = localStorage.getItem('komet_token') || '';
+        let currentSection = 'dashboard';
+
+        // --- API Helper ---
+        async function api(path, options = {}) {
+            const headers = options.headers || {};
+            if (token && !headers['Authorization']) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            if (options.body && !(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(options.body);
+            }
+            const res = await fetch(`/api${path}`, { ...options, headers });
+            if (res.status === 401) {
+                logout();
+                throw new Error('Unauthorized');
+            }
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+                throw new Error(err.detail || `HTTP ${res.status}`);
+            }
+            if (res.status === 204) return null;
+            return res.json();
+        }
+
+        // --- Toast ---
+        function toast(message, type = '') {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.textContent = message;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // --- Auth ---
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('username', username);
+                formData.append('password', password);
+
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Login failed');
+                }
+
+                const data = await res.json();
+                token = data.access_token;
+                localStorage.setItem('komet_token', token);
+                showApp();
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        });
+
+        function logout() {
+            token = '';
+            localStorage.removeItem('komet_token');
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+        }
+
+        async function showApp() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+
+            // Decode username from token
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                document.getElementById('current-user').textContent = payload.sub;
+            } catch {}
+
+            loadDashboard();
+        }
+
+        // --- Navigation ---
+        document.querySelectorAll('.sidebar a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = link.dataset.section;
+                navigate(section);
+            });
+        });
+
+        function navigate(section) {
+            currentSection = section;
+            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            document.querySelector(`.sidebar a[data-section="${section}"]`).classList.add('active');
+
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('section-hidden'));
+            document.getElementById(`section-${section}`).classList.remove('section-hidden');
+
+            // Load data for section
+            switch (section) {
+                case 'dashboard': loadDashboard(); break;
+                case 'media': loadMedia(); break;
+                case 'announcements': loadAnnouncements(); break;
+                case 'sponsors': loadSponsors(); break;
+                case 'playlist': loadPlaylist(); break;
+                case 'admins': loadAdmins(); break;
+            }
+        }
+
+        // --- Modals ---
+        function showModal(id) { document.getElementById(id).classList.add('active'); }
+        function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.classList.remove('active');
+            });
+        });
+
+        // --- Dashboard ---
+        async function loadDashboard() {
+            try {
+                const [media, announcements, sponsors, playlist] = await Promise.all([
+                    api('/media'),
+                    api('/announcements'),
+                    api('/sponsors'),
+                    api('/playlist'),
+                ]);
+
+                const images = media.filter(m => m.media_type === 'image').length;
+                const videos = media.filter(m => m.media_type === 'video').length;
+
+                document.getElementById('stats-grid').innerHTML = `
+                    <div class="stat-card"><div class="stat-value">${images}</div><div class="stat-label">Bilder</div></div>
+                    <div class="stat-card"><div class="stat-value">${videos}</div><div class="stat-label">Videos</div></div>
+                    <div class="stat-card"><div class="stat-value">${announcements.length}</div><div class="stat-label">Meddelanden</div></div>
+                    <div class="stat-card"><div class="stat-value">${sponsors.length}</div><div class="stat-label">Sponsorer</div></div>
+                    <div class="stat-card"><div class="stat-value">${playlist.length}</div><div class="stat-label">I spellistan</div></div>
+                `;
+            } catch (err) {
+                console.error('Dashboard load failed:', err);
+            }
+        }
+
+        // --- Media ---
+        async function loadMedia() {
+            try {
+                const filter = document.getElementById('media-filter').value;
+                const path = filter ? `/media?media_type=${filter}` : '/media';
+                const media = await api(path);
+
+                const table = document.getElementById('media-table');
+                const empty = document.getElementById('media-empty');
+
+                if (media.length === 0) {
+                    table.innerHTML = '';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                table.innerHTML = media.map(m => `
+                    <tr>
+                        <td>${m.thumbnail_path ? `<img class="thumbnail" src="${m.thumbnail_path}">` : `<div class="thumbnail" style="display:flex;align-items:center;justify-content:center;">🎬</div>`}</td>
+                        <td>${escapeHtml(m.original_filename)}</td>
+                        <td><span class="badge ${m.media_type === 'image' ? 'badge-blue' : 'badge-green'}">${m.media_type === 'image' ? 'Bild' : 'Video'}</span></td>
+                        <td>${formatSize(m.file_size)}</td>
+                        <td>${formatDate(m.created_at)}</td>
+                        <td class="actions">
+                            <a href="${m.file_path}" target="_blank" class="btn btn-secondary btn-sm">Visa</a>
+                            <button class="btn btn-danger btn-sm" onclick="deleteMedia(${m.id})">Ta bort</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('upload-file');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                await api('/media', { method: 'POST', body: formData });
+                toast('Media uppladdad!', 'success');
+                hideModal('upload-modal');
+                fileInput.value = '';
+                loadMedia();
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        });
+
+        async function deleteMedia(id) {
+            if (!confirm('Ta bort denna media?')) return;
+            try {
+                await api(`/media/${id}`, { method: 'DELETE' });
+                toast('Media borttagen', 'success');
+                loadMedia();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // --- Announcements ---
+        async function loadAnnouncements() {
+            try {
+                const announcements = await api('/announcements');
+                const table = document.getElementById('announcements-table');
+                const empty = document.getElementById('announcements-empty');
+
+                if (announcements.length === 0) {
+                    table.innerHTML = '';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                table.innerHTML = announcements.map(a => `
+                    <tr>
+                        <td><strong>${escapeHtml(a.title)}</strong></td>
+                        <td><span class="badge ${a.active ? 'badge-green' : 'badge-gray'}">${a.active ? 'Aktiv' : 'Inaktiv'}</span></td>
+                        <td>${formatDate(a.created_at)}</td>
+                        <td class="actions">
+                            <button class="btn btn-secondary btn-sm" onclick="editAnnouncement(${a.id})">Redigera</button>
+                            <button class="btn btn-${a.active ? 'secondary' : 'success'} btn-sm" onclick="toggleAnnouncement(${a.id}, ${!a.active})">${a.active ? 'Inaktivera' : 'Aktivera'}</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(${a.id})">Ta bort</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        function showAnnouncementForm(announcement = null) {
+            document.getElementById('announcement-modal-title').textContent = announcement ? 'Redigera meddelande' : 'Nytt meddelande';
+            document.getElementById('announcement-id').value = announcement ? announcement.id : '';
+            document.getElementById('announcement-title').value = announcement ? announcement.title : '';
+            document.getElementById('announcement-content').value = announcement ? announcement.content : '';
+            showModal('announcement-modal');
+        }
+
+        async function editAnnouncement(id) {
+            try {
+                const announcements = await api('/announcements');
+                const a = announcements.find(x => x.id === id);
+                if (a) showAnnouncementForm(a);
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        document.getElementById('announcement-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('announcement-id').value;
+            const title = document.getElementById('announcement-title').value;
+            const content = document.getElementById('announcement-content').value;
+
+            try {
+                if (id) {
+                    await api(`/announcements/${id}`, { method: 'PUT', body: { title, content } });
+                    toast('Meddelande uppdaterat!', 'success');
+                } else {
+                    await api('/announcements', { method: 'POST', body: { title, content } });
+                    toast('Meddelande skapat!', 'success');
+                }
+                hideModal('announcement-modal');
+                loadAnnouncements();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        async function toggleAnnouncement(id, active) {
+            try {
+                await api(`/announcements/${id}`, { method: 'PUT', body: { active } });
+                loadAnnouncements();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm('Ta bort detta meddelande?')) return;
+            try {
+                await api(`/announcements/${id}`, { method: 'DELETE' });
+                toast('Meddelande borttaget', 'success');
+                loadAnnouncements();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // --- Sponsors ---
+        async function loadSponsors() {
+            try {
+                const sponsors = await api('/sponsors');
+                const table = document.getElementById('sponsors-table');
+                const empty = document.getElementById('sponsors-empty');
+
+                if (sponsors.length === 0) {
+                    table.innerHTML = '';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                table.innerHTML = sponsors.map(s => `
+                    <tr>
+                        <td>${s.thumbnail_path ? `<img class="thumbnail" src="${s.thumbnail_path}">` : `<img class="thumbnail" src="${s.logo_path}">`}</td>
+                        <td><strong>${escapeHtml(s.name)}</strong></td>
+                        <td><span class="badge ${s.active ? 'badge-green' : 'badge-gray'}">${s.active ? 'Aktiv' : 'Inaktiv'}</span></td>
+                        <td class="actions">
+                            <button class="btn btn-danger btn-sm" onclick="deleteSponsor(${s.id})">Ta bort</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        document.getElementById('sponsor-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('sponsor-name').value;
+            const logo = document.getElementById('sponsor-logo').files[0];
+            if (!logo) return;
+
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('logo', logo);
+
+            try {
+                await api('/sponsors', { method: 'POST', body: formData });
+                toast('Sponsor tillagd!', 'success');
+                hideModal('sponsor-modal');
+                document.getElementById('sponsor-form').reset();
+                loadSponsors();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        async function deleteSponsor(id) {
+            if (!confirm('Ta bort denna sponsor?')) return;
+            try {
+                await api(`/sponsors/${id}`, { method: 'DELETE' });
+                toast('Sponsor borttagen', 'success');
+                loadSponsors();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // --- Playlist ---
+        async function loadPlaylist() {
+            try {
+                const items = await api('/playlist');
+                const container = document.getElementById('playlist-items');
+                const empty = document.getElementById('playlist-empty');
+
+                if (items.length === 0) {
+                    container.innerHTML = '';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                container.innerHTML = items.map(item => `
+                    <div class="playlist-item" data-id="${item.id}" draggable="true">
+                        <span class="drag-handle">☰</span>
+                        <div class="item-info">
+                            <div class="item-name">${getContentTypeName(item.content_type)} #${item.content_id}</div>
+                            <div class="item-type">${getContentTypeName(item.content_type)} · ${item.duration || 'Standard'} sek · ${item.active ? 'Aktiv' : 'Inaktiv'}</div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-${item.active ? 'secondary' : 'success'} btn-sm" onclick="togglePlaylistItem(${item.id}, ${!item.active})">${item.active ? 'Av' : 'På'}</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePlaylistItem(${item.id})">✕</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                initDragAndDrop();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function loadPlaylistContentOptions() {
+            const type = document.getElementById('playlist-content-type').value;
+            const select = document.getElementById('playlist-content-id');
+            select.innerHTML = '<option value="">Laddar...</option>';
+
+            if (!type) {
+                select.innerHTML = '<option value="">Välj typ först...</option>';
+                return;
+            }
+
+            try {
+                let items = [];
+                if (type === 'image' || type === 'video') {
+                    const media = await api(`/media?media_type=${type}`);
+                    items = media.map(m => ({ id: m.id, name: m.original_filename }));
+                } else if (type === 'announcement') {
+                    const announcements = await api('/announcements');
+                    items = announcements.map(a => ({ id: a.id, name: a.title }));
+                } else if (type === 'sponsor') {
+                    const sponsors = await api('/sponsors');
+                    items = sponsors.map(s => ({ id: s.id, name: s.name }));
+                }
+
+                if (items.length === 0) {
+                    select.innerHTML = '<option value="">Inga tillgängliga</option>';
+                } else {
+                    select.innerHTML = items.map(i => `<option value="${i.id}">${escapeHtml(i.name)}</option>`).join('');
+                }
+            } catch (err) {
+                select.innerHTML = '<option value="">Fel vid laddning</option>';
+            }
+        }
+
+        document.getElementById('playlist-add-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content_type = document.getElementById('playlist-content-type').value;
+            const content_id = parseInt(document.getElementById('playlist-content-id').value);
+
+            if (!content_type || !content_id) return;
+
+            try {
+                await api('/playlist', { method: 'POST', body: { content_type, content_id } });
+                toast('Tillagd i spellistan!', 'success');
+                hideModal('playlist-add-modal');
+                document.getElementById('playlist-add-form').reset();
+                document.getElementById('playlist-content-id').innerHTML = '<option value="">Välj typ först...</option>';
+                loadPlaylist();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        async function togglePlaylistItem(id, active) {
+            try {
+                await api(`/playlist/${id}`, { method: 'PUT', body: { active } });
+                loadPlaylist();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function deletePlaylistItem(id) {
+            if (!confirm('Ta bort från spellistan?')) return;
+            try {
+                await api(`/playlist/${id}`, { method: 'DELETE' });
+                toast('Borttagen från spellistan', 'success');
+                loadPlaylist();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // Drag and drop reorder
+        function initDragAndDrop() {
+            const container = document.getElementById('playlist-items');
+            let draggedItem = null;
+
+            container.querySelectorAll('.playlist-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedItem = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    draggedItem = null;
+                    savePlaylistOrder();
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (draggedItem && draggedItem !== item) {
+                        const rect = item.getBoundingClientRect();
+                        const midY = rect.top + rect.height / 2;
+                        if (e.clientY < midY) {
+                            container.insertBefore(draggedItem, item);
+                        } else {
+                            container.insertBefore(draggedItem, item.nextSibling);
+                        }
+                    }
+                });
+            });
+        }
+
+        async function savePlaylistOrder() {
+            const items = document.querySelectorAll('.playlist-item');
+            const item_ids = Array.from(items).map(i => parseInt(i.dataset.id));
+
+            try {
+                await api('/playlist/reorder', { method: 'POST', body: { item_ids } });
+                toast('Ordning sparad!', 'success');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // --- Admins ---
+        async function loadAdmins() {
+            try {
+                const admins = await api('/auth/admins');
+                const table = document.getElementById('admins-table');
+                table.innerHTML = admins.map(a => `
+                    <tr>
+                        <td><strong>${escapeHtml(a.username)}</strong></td>
+                        <td>${formatDate(a.created_at)}</td>
+                        <td class="actions">
+                            <button class="btn btn-danger btn-sm" onclick="deleteAdmin(${a.id})" ${admins.length <= 1 ? 'disabled' : ''}>Ta bort</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        document.getElementById('admin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+
+            try {
+                await api('/auth/admins', { method: 'POST', body: { username, password } });
+                toast('Admin skapad!', 'success');
+                hideModal('admin-modal');
+                document.getElementById('admin-form').reset();
+                loadAdmins();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        async function deleteAdmin(id) {
+            if (!confirm('Ta bort denna admin?')) return;
+            try {
+                await api(`/auth/admins/${id}`, { method: 'DELETE' });
+                toast('Admin borttagen', 'success');
+                loadAdmins();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const current_password = document.getElementById('current-password').value;
+            const new_password = document.getElementById('new-password').value;
+
+            try {
+                await api('/auth/change-password', { method: 'POST', body: { current_password, new_password } });
+                toast('Lösenord ändrat!', 'success');
+                document.getElementById('change-password-form').reset();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        // --- Utilities ---
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('sv-SE');
+        }
+
+        function getContentTypeName(type) {
+            const names = { image: 'Bild', video: 'Video', announcement: 'Meddelande', sponsor: 'Sponsor' };
+            return names[type] || type;
+        }
+
+        // --- Init ---
+        if (token) {
+            // Verify token is still valid
+            api('/auth/admins').then(() => showApp()).catch(() => {
+                token = '';
+                localStorage.removeItem('komet_token');
+            });
+        }
+    </script>
+</body>
+</html>

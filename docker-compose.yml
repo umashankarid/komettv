@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  komet-tv:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - komet-data:/app/data
+      - komet-media:/app/media
+    environment:
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-komet123}
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-a-random-string}
+      - DATABASE_PATH=/app/data/komet-tv.db
+      - MEDIA_PATH=/app/media
+      - PLAYLIST_REFRESH_SECONDS=${PLAYLIST_REFRESH_SECONDS:-30}
+      - DISPLAY_DURATION_IMAGE=${DISPLAY_DURATION_IMAGE:-5}
+      - DISPLAY_DURATION_ANNOUNCEMENT=${DISPLAY_DURATION_ANNOUNCEMENT:-15}
+      - DISPLAY_DURATION_SPONSOR=${DISPLAY_DURATION_SPONSOR:-10}
+      - MAX_IMAGE_SIZE=${MAX_IMAGE_SIZE:-10485760}
+      - MAX_VIDEO_SIZE=${MAX_VIDEO_SIZE:-209715200}
+    restart: unless-stopped
+
+volumes:
+  komet-data:
+  komet-media:

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Komet TV</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            cursor: none;
+        }
+
+        #player {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+            z-index: 1;
+        }
+
+        .slide.active {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        /* Image slides */
+        .slide img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Video slides */
+        .slide video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Announcement slides */
+        .slide-announcement {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            flex-direction: column;
+            padding: 60px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .slide-announcement .announcement-title {
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .slide-announcement .announcement-content {
+            font-size: 2.2rem;
+            line-height: 1.5;
+            max-width: 80%;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .slide-announcement .announcement-content h1 { font-size: 3.5rem; margin-bottom: 20px; }
+        .slide-announcement .announcement-content h2 { font-size: 3rem; margin-bottom: 15px; }
+        .slide-announcement .announcement-content p { margin-bottom: 15px; }
+
+        /* Sponsor slides */
+        .slide-sponsor {
+            background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+            flex-direction: column;
+            padding: 60px;
+        }
+
+        .slide-sponsor .sponsor-label {
+            font-size: 1.5rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+        }
+
+        .slide-sponsor img {
+            max-width: 70%;
+            max-height: 60%;
+            object-fit: contain;
+        }
+
+        .slide-sponsor .sponsor-name {
+            font-size: 2.5rem;
+            color: #333;
+            margin-top: 30px;
+            font-weight: 600;
+        }
+
+        /* Loading / Empty state */
+        #status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 2rem;
+            text-align: center;
+            z-index: 100;
+        }
+
+        #status.hidden {
+            display: none;
+        }
+
+        /* Clock overlay */
+        #clock {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.8rem;
+            font-weight: 300;
+            z-index: 1000;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div id="player">
+        <div id="status">
+            <p>⚽ Komet TV</p>
+            <p style="font-size: 1.2rem; margin-top: 10px; opacity: 0.7;">Laddar spellistans innehåll...</p>
+        </div>
+    </div>
+    <div id="clock"></div>
+
+    <script>
+        const PLAYER = document.getElementById('player');
+        const STATUS = document.getElementById('status');
+        const CLOCK = document.getElementById('clock');
+
+        let playlist = [];
+        let currentIndex = -1;
+        let currentSlide = null;
+        let playlistVersion = '';
+        let refreshInterval = 30;
+        let advanceTimeout = null;
+
+        // --- Clock ---
+        function updateClock() {
+            const now = new Date();
+            CLOCK.textContent = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- Playlist fetching ---
+        async function fetchPlaylist() {
+            try {
+                const res = await fetch('/api/playlist/player');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                return data;
+            } catch (err) {
+                console.error('Failed to fetch playlist:', err);
+                return null;
+            }
+        }
+
+        async function fetchVersion() {
+            try {
+                const res = await fetch('/api/playlist/version');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                return data;
+            } catch (err) {
+                console.error('Failed to fetch version:', err);
+                return null;
+            }
+        }
+
+        async function checkForUpdates() {
+            const versionData = await fetchVersion();
+            if (!versionData) return;
+
+            refreshInterval = versionData.refresh_seconds;
+
+            if (versionData.version !== playlistVersion) {
+                const newPlaylist = await fetchPlaylist();
+                if (newPlaylist) {
+                    playlistVersion = versionData.version;
+                    playlist = newPlaylist;
+
+                    if (playlist.length > 0) {
+                        STATUS.classList.add('hidden');
+                        // If player was idle, start playing
+                        if (currentIndex === -1) {
+                            currentIndex = 0;
+                            showSlide(currentIndex);
+                        }
+                    } else {
+                        STATUS.classList.remove('hidden');
+                        STATUS.innerHTML = '<p>⚽ Komet TV</p><p style="font-size: 1.2rem; margin-top: 10px; opacity: 0.7;">Ingen spellistans innehåll</p>';
+                    }
+                }
+            }
+        }
+
+        // --- Slide rendering ---
+        function createSlide(item) {
+            const slide = document.createElement('div');
+            slide.className = 'slide';
+
+            switch (item.content_type) {
+                case 'image':
+                    slide.innerHTML = `<img src="${item.data.url}" alt="${item.data.filename || ''}" />`;
+                    break;
+
+                case 'video':
+                    slide.innerHTML = `<video src="${item.data.url}" autoplay muted playsinline></video>`;
+                    break;
+
+                case 'announcement':
+                    slide.classList.add('slide-announcement');
+                    slide.innerHTML = `
+                        <div class="announcement-title">${escapeHtml(item.data.title)}</div>
+                        <div class="announcement-content">${item.data.content}</div>
+                    `;
+                    break;
+
+                case 'sponsor':
+                    slide.classList.add('slide-sponsor');
+                    slide.innerHTML = `
+                        <div class="sponsor-label">Sponsor</div>
+                        <img src="${item.data.logo_url}" alt="${escapeHtml(item.data.name)}" />
+                        <div class="sponsor-name">${escapeHtml(item.data.name)}</div>
+                    `;
+                    break;
+            }
+
+            return slide;
+        }
+
+        function showSlide(index) {
+            if (playlist.length === 0) return;
+
+            const item = playlist[index];
+            const newSlide = createSlide(item);
+
+            PLAYER.appendChild(newSlide);
+
+            // Trigger reflow for transition
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    newSlide.classList.add('active');
+                });
+            });
+
+            // Fade out and remove old slide
+            if (currentSlide) {
+                const oldSlide = currentSlide;
+                oldSlide.classList.remove('active');
+                setTimeout(() => {
+                    if (oldSlide.parentNode) {
+                        oldSlide.parentNode.removeChild(oldSlide);
+                    }
+                }, 1000); // Remove after fade completes
+            }
+
+            currentSlide = newSlide;
+
+            // Schedule next slide
+            scheduleNext(item);
+        }
+
+        function scheduleNext(item) {
+            if (advanceTimeout) {
+                clearTimeout(advanceTimeout);
+                advanceTimeout = null;
+            }
+
+            if (item.content_type === 'video') {
+                // For videos, advance when video ends
+                const video = currentSlide.querySelector('video');
+                if (video) {
+                    video.addEventListener('ended', advanceSlide, { once: true });
+                    video.addEventListener('error', () => {
+                        // If video fails to load, skip after 5 seconds
+                        advanceTimeout = setTimeout(advanceSlide, 5000);
+                    }, { once: true });
+                } else {
+                    advanceTimeout = setTimeout(advanceSlide, 5000);
+                }
+            } else {
+                // Timed slides
+                const duration = item.duration * 1000;
+                advanceTimeout = setTimeout(advanceSlide, duration);
+            }
+        }
+
+        function advanceSlide() {
+            if (playlist.length === 0) return;
+            currentIndex = (currentIndex + 1) % playlist.length;
+            showSlide(currentIndex);
+        }
+
+        // --- Utilities ---
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // --- Initialization ---
+        async function init() {
+            // Initial load
+            await checkForUpdates();
+
+            // Periodic refresh check
+            setInterval(() => {
+                checkForUpdates();
+            }, refreshInterval * 1000);
+        }
+
+        // Prevent screen from sleeping (if supported)
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.log('Wake Lock not supported or failed:', err);
+            }
+        }
+
+        // Re-request wake lock when page becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
+        // Start
+        requestWakeLock();
+        init();
+    </script>
+</body>
+</html>
