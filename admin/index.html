@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -373,14 +373,14 @@
             <p>Admin Panel</p>
             <form id="login-form">
                 <div class="form-group">
-                    <label>Användarnamn</label>
+                    <label>Username</label>
                     <input type="text" id="login-username" required autocomplete="username">
                 </div>
                 <div class="form-group">
-                    <label>Lösenord</label>
+                    <label>Password</label>
                     <input type="password" id="login-password" required autocomplete="current-password">
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:1rem;">Logga in</button>
+                <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:1rem;">Log in</button>
             </form>
         </div>
     </div>
@@ -391,17 +391,17 @@
             <h1>🏸 Komet TV Admin</h1>
             <div class="topbar-right">
                 <span id="current-user"></span>
-                <a href="/display/main" target="_blank" class="btn btn-secondary btn-sm">📺 Visa TV</a>
-                <button class="btn btn-secondary btn-sm" onclick="logout()">Logga ut</button>
+                <a href="/display/main" target="_blank" class="btn btn-secondary btn-sm">📺 View TV</a>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Log out</button>
             </div>
         </div>
 
         <nav class="sidebar">
             <a href="#" data-section="dashboard" class="active">📊 Dashboard</a>
             <a href="#" data-section="media">🖼️ Media</a>
-            <a href="#" data-section="announcements">📢 Meddelanden</a>
-            <a href="#" data-section="sponsors">🤝 Sponsorer</a>
-            <a href="#" data-section="playlist">📋 Spellista</a>
+            <a href="#" data-section="announcements">📢 Announcements</a>
+            <a href="#" data-section="sponsors">🤝 Sponsors</a>
+            <a href="#" data-section="playlist">📋 Playlist</a>
             <a href="#" data-section="admins">👤 Admins</a>
         </nav>
 
@@ -411,12 +411,12 @@
                 <h2 style="margin-bottom:20px;">Dashboard</h2>
                 <div class="stats-grid" id="stats-grid"></div>
                 <div class="card">
-                    <h2>Snabblänkar</h2>
+                    <h2>Quick Links</h2>
                     <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                        <button class="btn btn-primary" onclick="navigate('media')">Ladda upp media</button>
-                        <button class="btn btn-primary" onclick="navigate('announcements')">Nytt meddelande</button>
-                        <button class="btn btn-primary" onclick="navigate('playlist')">Hantera spellista</button>
-                        <a href="/display/main" target="_blank" class="btn btn-success">📺 Öppna TV Player</a>
+                        <button class="btn btn-primary" onclick="navigate('media')">Upload Media</button>
+                        <button class="btn btn-primary" onclick="navigate('announcements')">New Announcement</button>
+                        <button class="btn btn-primary" onclick="navigate('playlist')">Manage Playlist</button>
+                        <a href="/display/main" target="_blank" class="btn btn-success">📺 Open TV Player</a>
                     </div>
                 </div>
             </section>
@@ -425,120 +425,120 @@
             <section id="section-media" class="section-hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h2>Media</h2>
-                    <button class="btn btn-primary" onclick="showModal('upload-modal')">+ Ladda upp</button>
+                    <button class="btn btn-primary" onclick="showModal('upload-modal')">+ Upload</button>
                 </div>
                 <div class="card">
                     <div style="margin-bottom:12px;">
                         <select id="media-filter" onchange="loadMedia()" style="padding:8px 12px; border:1px solid var(--gray-300); border-radius:6px;">
-                            <option value="">Alla</option>
-                            <option value="image">Bilder</option>
+                            <option value="">All</option>
+                            <option value="image">Images</option>
                             <option value="video">Videos</option>
                         </select>
                     </div>
                     <table>
                         <thead>
                             <tr>
-                                <th>Förhandsvisning</th>
-                                <th>Filnamn</th>
-                                <th>Typ</th>
-                                <th>Storlek</th>
-                                <th>Datum</th>
-                                <th>Åtgärder</th>
+                                <th>Preview</th>
+                                <th>Filename</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Date</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="media-table"></tbody>
                     </table>
-                    <div id="media-empty" class="empty-state" style="display:none;">Ingen media uppladdad ännu.</div>
+                    <div id="media-empty" class="empty-state" style="display:none;">No media uploaded yet.</div>
                 </div>
             </section>
 
             <!-- Announcements -->
             <section id="section-announcements" class="section-hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h2>Meddelanden</h2>
-                    <button class="btn btn-primary" onclick="showAnnouncementForm()">+ Nytt meddelande</button>
+                    <h2>Announcements</h2>
+                    <button class="btn btn-primary" onclick="showAnnouncementForm()">+ New Announcement</button>
                 </div>
                 <div class="card">
                     <table>
                         <thead>
                             <tr>
-                                <th>Titel</th>
+                                <th>Title</th>
                                 <th>Status</th>
-                                <th>Skapad</th>
-                                <th>Åtgärder</th>
+                                <th>Created</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="announcements-table"></tbody>
                     </table>
-                    <div id="announcements-empty" class="empty-state" style="display:none;">Inga meddelanden skapade.</div>
+                    <div id="announcements-empty" class="empty-state" style="display:none;">No announcements created.</div>
                 </div>
             </section>
 
             <!-- Sponsors -->
             <section id="section-sponsors" class="section-hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h2>Sponsorer</h2>
-                    <button class="btn btn-primary" onclick="showModal('sponsor-modal')">+ Lägg till sponsor</button>
+                    <h2>Sponsors</h2>
+                    <button class="btn btn-primary" onclick="showModal('sponsor-modal')">+ Add Sponsor</button>
                 </div>
                 <div class="card">
                     <table>
                         <thead>
                             <tr>
                                 <th>Logo</th>
-                                <th>Namn</th>
+                                <th>Name</th>
                                 <th>Status</th>
-                                <th>Åtgärder</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="sponsors-table"></tbody>
                     </table>
-                    <div id="sponsors-empty" class="empty-state" style="display:none;">Inga sponsorer tillagda.</div>
+                    <div id="sponsors-empty" class="empty-state" style="display:none;">No sponsors added.</div>
                 </div>
             </section>
 
             <!-- Playlist -->
             <section id="section-playlist" class="section-hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h2>Spellista</h2>
-                    <button class="btn btn-primary" onclick="showModal('playlist-add-modal')">+ Lägg till</button>
+                    <h2>Playlist</h2>
+                    <button class="btn btn-primary" onclick="showModal('playlist-add-modal')">+ Add Item</button>
                 </div>
                 <div class="card">
-                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Dra och släpp för att ändra ordning. Ändringar syns på TV:n inom 30 sekunder.</p>
+                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Drag and drop to reorder. Changes appear on the TV within 30 seconds.</p>
                     <div id="playlist-items"></div>
-                    <div id="playlist-empty" class="empty-state" style="display:none;">Spellistan är tom. Lägg till innehåll ovan.</div>
+                    <div id="playlist-empty" class="empty-state" style="display:none;">Playlist is empty. Add content above.</div>
                 </div>
             </section>
 
             <!-- Admins -->
             <section id="section-admins" class="section-hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h2>Administratörer</h2>
-                    <button class="btn btn-primary" onclick="showModal('admin-modal')">+ Ny admin</button>
+                    <h2>Administrators</h2>
+                    <button class="btn btn-primary" onclick="showModal('admin-modal')">+ New Admin</button>
                 </div>
                 <div class="card">
                     <table>
                         <thead>
                             <tr>
-                                <th>Användarnamn</th>
-                                <th>Skapad</th>
-                                <th>Åtgärder</th>
+                                <th>Username</th>
+                                <th>Created</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="admins-table"></tbody>
                     </table>
                 </div>
                 <div class="card">
-                    <h2>Ändra lösenord</h2>
+                    <h2>Change Password</h2>
                     <form id="change-password-form">
                         <div class="form-group">
-                            <label>Nuvarande lösenord</label>
+                            <label>Current Password</label>
                             <input type="password" id="current-password" required>
                         </div>
                         <div class="form-group">
-                            <label>Nytt lösenord</label>
+                            <label>New Password</label>
                             <input type="password" id="new-password" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Ändra lösenord</button>
+                        <button type="submit" class="btn btn-primary">Change Password</button>
                     </form>
                 </div>
             </section>
@@ -548,15 +548,15 @@
     <!-- Modals -->
     <div class="modal-overlay" id="upload-modal">
         <div class="modal">
-            <h2>Ladda upp media</h2>
+            <h2>Upload Media</h2>
             <form id="upload-form">
                 <div class="form-group">
-                    <label>Välj fil (JPG, PNG, WEBP, MP4)</label>
+                    <label>Choose file (JPG, PNG, WEBP, MP4)</label>
                     <input type="file" id="upload-file" accept=".jpg,.jpeg,.png,.webp,.mp4" required>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="submit" class="btn btn-primary">Ladda upp</button>
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('upload-modal')">Avbryt</button>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('upload-modal')">Cancel</button>
                 </div>
             </form>
         </div>
@@ -564,20 +564,20 @@
 
     <div class="modal-overlay" id="announcement-modal">
         <div class="modal">
-            <h2 id="announcement-modal-title">Nytt meddelande</h2>
+            <h2 id="announcement-modal-title">New Announcement</h2>
             <form id="announcement-form">
                 <input type="hidden" id="announcement-id">
                 <div class="form-group">
-                    <label>Titel</label>
+                    <label>Title</label>
                     <input type="text" id="announcement-title" required>
                 </div>
                 <div class="form-group">
-                    <label>Innehåll (HTML)</label>
-                    <textarea id="announcement-content" required placeholder="<h1>Rubrik</h1><p>Text här...</p>"></textarea>
+                    <label>Content (HTML)</label>
+                    <textarea id="announcement-content" required placeholder="<h1>Heading</h1><p>Text here...</p>"></textarea>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="submit" class="btn btn-primary">Spara</button>
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('announcement-modal')">Avbryt</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('announcement-modal')">Cancel</button>
                 </div>
             </form>
         </div>
@@ -585,10 +585,10 @@
 
     <div class="modal-overlay" id="sponsor-modal">
         <div class="modal">
-            <h2>Lägg till sponsor</h2>
+            <h2>Add Sponsor</h2>
             <form id="sponsor-form">
                 <div class="form-group">
-                    <label>Namn</label>
+                    <label>Name</label>
                     <input type="text" id="sponsor-name" required>
                 </div>
                 <div class="form-group">
@@ -596,8 +596,8 @@
                     <input type="file" id="sponsor-logo" accept=".jpg,.jpeg,.png,.webp" required>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="submit" class="btn btn-primary">Spara</button>
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('sponsor-modal')">Avbryt</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('sponsor-modal')">Cancel</button>
                 </div>
             </form>
         </div>
@@ -605,27 +605,27 @@
 
     <div class="modal-overlay" id="playlist-add-modal">
         <div class="modal">
-            <h2>Lägg till i spellistan</h2>
+            <h2>Add to Playlist</h2>
             <form id="playlist-add-form">
                 <div class="form-group">
-                    <label>Typ</label>
+                    <label>Type</label>
                     <select id="playlist-content-type" onchange="loadPlaylistContentOptions()" required>
-                        <option value="">Välj typ...</option>
-                        <option value="image">Bild</option>
+                        <option value="">Select type...</option>
+                        <option value="image">Image</option>
                         <option value="video">Video</option>
-                        <option value="announcement">Meddelande</option>
+                        <option value="announcement">Announcement</option>
                         <option value="sponsor">Sponsor</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Innehåll</label>
+                    <label>Content</label>
                     <select id="playlist-content-id" required>
-                        <option value="">Välj typ först...</option>
+                        <option value="">Select type first...</option>
                     </select>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="submit" class="btn btn-primary">Lägg till</button>
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('playlist-add-modal')">Avbryt</button>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('playlist-add-modal')">Cancel</button>
                 </div>
             </form>
         </div>
@@ -633,19 +633,19 @@
 
     <div class="modal-overlay" id="admin-modal">
         <div class="modal">
-            <h2>Ny administratör</h2>
+            <h2>New Administrator</h2>
             <form id="admin-form">
                 <div class="form-group">
-                    <label>Användarnamn</label>
+                    <label>Username</label>
                     <input type="text" id="admin-username" required>
                 </div>
                 <div class="form-group">
-                    <label>Lösenord</label>
+                    <label>Password</label>
                     <input type="password" id="admin-password" required>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="submit" class="btn btn-primary">Skapa</button>
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('admin-modal')">Avbryt</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('admin-modal')">Cancel</button>
                 </div>
             </form>
         </div>
@@ -791,11 +791,11 @@
                 const videos = media.filter(m => m.media_type === 'video').length;
 
                 document.getElementById('stats-grid').innerHTML = `
-                    <div class="stat-card"><div class="stat-value">${images}</div><div class="stat-label">Bilder</div></div>
+                    <div class="stat-card"><div class="stat-value">${images}</div><div class="stat-label">Images</div></div>
                     <div class="stat-card"><div class="stat-value">${videos}</div><div class="stat-label">Videos</div></div>
-                    <div class="stat-card"><div class="stat-value">${announcements.length}</div><div class="stat-label">Meddelanden</div></div>
-                    <div class="stat-card"><div class="stat-value">${sponsors.length}</div><div class="stat-label">Sponsorer</div></div>
-                    <div class="stat-card"><div class="stat-value">${playlist.length}</div><div class="stat-label">I spellistan</div></div>
+                    <div class="stat-card"><div class="stat-value">${announcements.length}</div><div class="stat-label">Announcements</div></div>
+                    <div class="stat-card"><div class="stat-value">${sponsors.length}</div><div class="stat-label">Sponsors</div></div>
+                    <div class="stat-card"><div class="stat-value">${playlist.length}</div><div class="stat-label">In Playlist</div></div>
                 `;
             } catch (err) {
                 console.error('Dashboard load failed:', err);
@@ -823,12 +823,12 @@
                     <tr>
                         <td>${m.thumbnail_path ? `<img class="thumbnail" src="${m.thumbnail_path}">` : `<div class="thumbnail" style="display:flex;align-items:center;justify-content:center;">🎬</div>`}</td>
                         <td>${escapeHtml(m.original_filename)}</td>
-                        <td><span class="badge ${m.media_type === 'image' ? 'badge-blue' : 'badge-green'}">${m.media_type === 'image' ? 'Bild' : 'Video'}</span></td>
+                        <td><span class="badge ${m.media_type === 'image' ? 'badge-blue' : 'badge-green'}">${m.media_type === 'image' ? 'Image' : 'Video'}</span></td>
                         <td>${formatSize(m.file_size)}</td>
                         <td>${formatDate(m.created_at)}</td>
                         <td class="actions">
-                            <a href="${m.file_path}" target="_blank" class="btn btn-secondary btn-sm">Visa</a>
-                            <button class="btn btn-danger btn-sm" onclick="deleteMedia(${m.id})">Ta bort</button>
+                            <a href="${m.file_path}" target="_blank" class="btn btn-secondary btn-sm">View</a>
+                            <button class="btn btn-danger btn-sm" onclick="deleteMedia(${m.id})">Delete</button>
                         </td>
                     </tr>
                 `).join('');
@@ -848,7 +848,7 @@
 
             try {
                 await api('/media', { method: 'POST', body: formData });
-                toast('Media uppladdad!', 'success');
+                toast('Media uploaded!', 'success');
                 hideModal('upload-modal');
                 fileInput.value = '';
                 loadMedia();
@@ -858,10 +858,10 @@
         });
 
         async function deleteMedia(id) {
-            if (!confirm('Ta bort denna media?')) return;
+            if (!confirm('Delete this media?')) return;
             try {
                 await api(`/media/${id}`, { method: 'DELETE' });
-                toast('Media borttagen', 'success');
+                toast('Media deleted', 'success');
                 loadMedia();
             } catch (err) { toast(err.message, 'error'); }
         }
@@ -883,12 +883,12 @@
                 table.innerHTML = announcements.map(a => `
                     <tr>
                         <td><strong>${escapeHtml(a.title)}</strong></td>
-                        <td><span class="badge ${a.active ? 'badge-green' : 'badge-gray'}">${a.active ? 'Aktiv' : 'Inaktiv'}</span></td>
+                        <td><span class="badge ${a.active ? 'badge-green' : 'badge-gray'}">${a.active ? 'Active' : 'Inactive'}</span></td>
                         <td>${formatDate(a.created_at)}</td>
                         <td class="actions">
-                            <button class="btn btn-secondary btn-sm" onclick="editAnnouncement(${a.id})">Redigera</button>
-                            <button class="btn btn-${a.active ? 'secondary' : 'success'} btn-sm" onclick="toggleAnnouncement(${a.id}, ${!a.active})">${a.active ? 'Inaktivera' : 'Aktivera'}</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(${a.id})">Ta bort</button>
+                            <button class="btn btn-secondary btn-sm" onclick="editAnnouncement(${a.id})">Edit</button>
+                            <button class="btn btn-${a.active ? 'secondary' : 'success'} btn-sm" onclick="toggleAnnouncement(${a.id}, ${!a.active})">${a.active ? 'Disable' : 'Enable'}</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(${a.id})">Delete</button>
                         </td>
                     </tr>
                 `).join('');
@@ -896,7 +896,7 @@
         }
 
         function showAnnouncementForm(announcement = null) {
-            document.getElementById('announcement-modal-title').textContent = announcement ? 'Redigera meddelande' : 'Nytt meddelande';
+            document.getElementById('announcement-modal-title').textContent = announcement ? 'Edit Announcement' : 'New Announcement';
             document.getElementById('announcement-id').value = announcement ? announcement.id : '';
             document.getElementById('announcement-title').value = announcement ? announcement.title : '';
             document.getElementById('announcement-content').value = announcement ? announcement.content : '';
@@ -920,10 +920,10 @@
             try {
                 if (id) {
                     await api(`/announcements/${id}`, { method: 'PUT', body: { title, content } });
-                    toast('Meddelande uppdaterat!', 'success');
+                    toast('Announcement updated!', 'success');
                 } else {
                     await api('/announcements', { method: 'POST', body: { title, content } });
-                    toast('Meddelande skapat!', 'success');
+                    toast('Announcement created!', 'success');
                 }
                 hideModal('announcement-modal');
                 loadAnnouncements();
@@ -938,10 +938,10 @@
         }
 
         async function deleteAnnouncement(id) {
-            if (!confirm('Ta bort detta meddelande?')) return;
+            if (!confirm('Delete this announcement?')) return;
             try {
                 await api(`/announcements/${id}`, { method: 'DELETE' });
-                toast('Meddelande borttaget', 'success');
+                toast('Announcement deleted', 'success');
                 loadAnnouncements();
             } catch (err) { toast(err.message, 'error'); }
         }
@@ -964,9 +964,9 @@
                     <tr>
                         <td>${s.thumbnail_path ? `<img class="thumbnail" src="${s.thumbnail_path}">` : `<img class="thumbnail" src="${s.logo_path}">`}</td>
                         <td><strong>${escapeHtml(s.name)}</strong></td>
-                        <td><span class="badge ${s.active ? 'badge-green' : 'badge-gray'}">${s.active ? 'Aktiv' : 'Inaktiv'}</span></td>
+                        <td><span class="badge ${s.active ? 'badge-green' : 'badge-gray'}">${s.active ? 'Active' : 'Inactive'}</span></td>
                         <td class="actions">
-                            <button class="btn btn-danger btn-sm" onclick="deleteSponsor(${s.id})">Ta bort</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteSponsor(${s.id})">Delete</button>
                         </td>
                     </tr>
                 `).join('');
@@ -985,7 +985,7 @@
 
             try {
                 await api('/sponsors', { method: 'POST', body: formData });
-                toast('Sponsor tillagd!', 'success');
+                toast('Sponsor added!', 'success');
                 hideModal('sponsor-modal');
                 document.getElementById('sponsor-form').reset();
                 loadSponsors();
@@ -993,10 +993,10 @@
         });
 
         async function deleteSponsor(id) {
-            if (!confirm('Ta bort denna sponsor?')) return;
+            if (!confirm('Delete this sponsor?')) return;
             try {
                 await api(`/sponsors/${id}`, { method: 'DELETE' });
-                toast('Sponsor borttagen', 'success');
+                toast('Sponsor deleted', 'success');
                 loadSponsors();
             } catch (err) { toast(err.message, 'error'); }
         }
@@ -1020,7 +1020,7 @@
                         <span class="drag-handle">☰</span>
                         <div class="item-info">
                             <div class="item-name">${getContentTypeName(item.content_type)} #${item.content_id}</div>
-                            <div class="item-type">${getContentTypeName(item.content_type)} · ${item.duration || 'Standard'} sek · ${item.active ? 'Aktiv' : 'Inaktiv'}</div>
+                            <div class="item-type">${getContentTypeName(item.content_type)} · ${item.duration || 'Default'} sec · ${item.active ? 'Active' : 'Inactive'}</div>
                         </div>
                         <div class="actions">
                             <button class="btn btn-${item.active ? 'secondary' : 'success'} btn-sm" onclick="togglePlaylistItem(${item.id}, ${!item.active})">${item.active ? 'Av' : 'På'}</button>
@@ -1036,10 +1036,10 @@
         async function loadPlaylistContentOptions() {
             const type = document.getElementById('playlist-content-type').value;
             const select = document.getElementById('playlist-content-id');
-            select.innerHTML = '<option value="">Laddar...</option>';
+            select.innerHTML = '<option value="">Loading...</option>';
 
             if (!type) {
-                select.innerHTML = '<option value="">Välj typ först...</option>';
+                select.innerHTML = '<option value="">Select type first...</option>';
                 return;
             }
 
@@ -1057,12 +1057,12 @@
                 }
 
                 if (items.length === 0) {
-                    select.innerHTML = '<option value="">Inga tillgängliga</option>';
+                    select.innerHTML = '<option value="">None available</option>';
                 } else {
                     select.innerHTML = items.map(i => `<option value="${i.id}">${escapeHtml(i.name)}</option>`).join('');
                 }
             } catch (err) {
-                select.innerHTML = '<option value="">Fel vid laddning</option>';
+                select.innerHTML = '<option value="">Error loading</option>';
             }
         }
 
@@ -1075,10 +1075,10 @@
 
             try {
                 await api('/playlist', { method: 'POST', body: { content_type, content_id } });
-                toast('Tillagd i spellistan!', 'success');
+                toast('Added to playlist!', 'success');
                 hideModal('playlist-add-modal');
                 document.getElementById('playlist-add-form').reset();
-                document.getElementById('playlist-content-id').innerHTML = '<option value="">Välj typ först...</option>';
+                document.getElementById('playlist-content-id').innerHTML = '<option value="">Select type first...</option>';
                 loadPlaylist();
             } catch (err) { toast(err.message, 'error'); }
         });
@@ -1091,10 +1091,10 @@
         }
 
         async function deletePlaylistItem(id) {
-            if (!confirm('Ta bort från spellistan?')) return;
+            if (!confirm('Remove from playlist?')) return;
             try {
                 await api(`/playlist/${id}`, { method: 'DELETE' });
-                toast('Borttagen från spellistan', 'success');
+                toast('Removed from playlist', 'success');
                 loadPlaylist();
             } catch (err) { toast(err.message, 'error'); }
         }
@@ -1138,7 +1138,7 @@
 
             try {
                 await api('/playlist/reorder', { method: 'POST', body: { item_ids } });
-                toast('Ordning sparad!', 'success');
+                toast('Order saved!', 'success');
             } catch (err) { toast(err.message, 'error'); }
         }
 
@@ -1152,7 +1152,7 @@
                         <td><strong>${escapeHtml(a.username)}</strong></td>
                         <td>${formatDate(a.created_at)}</td>
                         <td class="actions">
-                            <button class="btn btn-danger btn-sm" onclick="deleteAdmin(${a.id})" ${admins.length <= 1 ? 'disabled' : ''}>Ta bort</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteAdmin(${a.id})" ${admins.length <= 1 ? 'disabled' : ''}>Delete</button>
                         </td>
                     </tr>
                 `).join('');
@@ -1166,7 +1166,7 @@
 
             try {
                 await api('/auth/admins', { method: 'POST', body: { username, password } });
-                toast('Admin skapad!', 'success');
+                toast('Admin created!', 'success');
                 hideModal('admin-modal');
                 document.getElementById('admin-form').reset();
                 loadAdmins();
@@ -1174,10 +1174,10 @@
         });
 
         async function deleteAdmin(id) {
-            if (!confirm('Ta bort denna admin?')) return;
+            if (!confirm('Delete this admin?')) return;
             try {
                 await api(`/auth/admins/${id}`, { method: 'DELETE' });
-                toast('Admin borttagen', 'success');
+                toast('Admin deleted', 'success');
                 loadAdmins();
             } catch (err) { toast(err.message, 'error'); }
         }
@@ -1189,7 +1189,7 @@
 
             try {
                 await api('/auth/change-password', { method: 'POST', body: { current_password, new_password } });
-                toast('Lösenord ändrat!', 'success');
+                toast('Password changed!', 'success');
                 document.getElementById('change-password-form').reset();
             } catch (err) { toast(err.message, 'error'); }
         });
@@ -1212,7 +1212,7 @@
         }
 
         function getContentTypeName(type) {
-            const names = { image: 'Bild', video: 'Video', announcement: 'Meddelande', sponsor: 'Sponsor' };
+            const names = { image: 'Image', video: 'Video', announcement: 'Announcement', sponsor: 'Sponsor' };
             return names[type] || type;
         }
 
