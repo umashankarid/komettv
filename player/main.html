@@ -36,13 +36,15 @@
             align-items: center;
             justify-content: center;
             opacity: 0;
-            transition: opacity 0.8s ease-in-out;
-            z-index: 1;
+            transition: opacity 1s ease-in-out;
         }
 
         .slide.active {
             opacity: 1;
-            z-index: 2;
+        }
+
+        .slide.fade-out {
+            opacity: 0;
         }
 
         /* Image slides */
@@ -330,24 +332,27 @@
             const item = expandedPlaylist[index];
             const newSlide = createSlide(item);
 
+            // Place new slide on top
+            newSlide.style.zIndex = 2;
             PLAYER.appendChild(newSlide);
 
-            // Trigger reflow for transition
+            // Fade in the new slide
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     newSlide.classList.add('active');
                 });
             });
 
-            // Fade out and remove old slide
+            // Fade out and remove old slide after transition
             if (currentSlide) {
                 const oldSlide = currentSlide;
-                oldSlide.classList.remove('active');
+                oldSlide.style.zIndex = 1;
+                // Wait for new slide to fully fade in, then remove old
                 setTimeout(() => {
                     if (oldSlide.parentNode) {
                         oldSlide.parentNode.removeChild(oldSlide);
                     }
-                }, 1000);
+                }, 1200); // Slightly longer than transition (1s)
             }
 
             currentSlide = newSlide;
