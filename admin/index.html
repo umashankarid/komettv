@@ -1314,7 +1314,7 @@
                     <div class="playlist-item" data-id="${item.id}" draggable="true">
                         <span class="drag-handle">☰</span>
                         <div class="item-info">
-                            <div class="item-name">${getContentTypeName(item.content_type)} #${item.content_id}</div>
+                            <div class="item-name">${item.content_name || getContentTypeName(item.content_type) + ' #' + item.content_id}</div>
                             <div class="item-type">${getContentTypeName(item.content_type)} · ${item.active ? 'Active' : 'Inactive'}</div>
                         </div>
                         <div style="display:flex; align-items:center; gap:4px;">

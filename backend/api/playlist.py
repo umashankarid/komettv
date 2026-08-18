@@ -28,6 +28,7 @@ class PlaylistItemOut(BaseModel):
     id: int
     content_type: ContentType
     content_id: int
+    content_name: str | None = None
     position: int
     active: bool
     duration: int | None
@@ -64,7 +65,24 @@ async def list_playlist_items(
     current_admin: Admin = Depends(get_current_admin),
 ):
     result = await db.execute(select(PlaylistItem).order_by(PlaylistItem.position))
-    return result.scalars().all()
+    items = result.scalars().all()
+
+    # Resolve content names
+    items_out = []
+    for item in items:
+        name = await _get_content_name(db, item.content_type, item.content_id)
+        items_out.append(PlaylistItemOut(
+            id=item.id,
+            content_type=item.content_type,
+            content_id=item.content_id,
+            content_name=name,
+            position=item.position,
+            active=item.active,
+            duration=item.duration,
+            created_at=item.created_at,
+        ))
+
+    return items_out
 
 
 @router.post("", response_model=PlaylistItemOut, status_code=201)
@@ -292,3 +310,20 @@ def _get_default_duration(content_type: ContentType) -> int:
     elif content_type == ContentType.FOLDER:
         return settings.DISPLAY_DURATION_IMAGE  # Per-item duration within folder
     return 10
+
+
+async def _get_content_name(db: AsyncSession, content_type: ContentType, content_id: int) -> str | None:
+    """Get a human-readable name for a playlist item's content."""
+    if content_type in (ContentType.IMAGE, ContentType.VIDEO):
+        result = await db.execute(select(Media).where(Media.id == content_id))
+        media = result.scalar_one_or_none()
+        return media.original_filename if media else None
+    elif content_type == ContentType.ANNOUNCEMENT:
+        result = await db.execute(select(Announcement).where(Announcement.id == content_id))
+        ann = result.scalar_one_or_none()
+        return ann.title if ann else None
+    elif content_type == ContentType.FOLDER:
+        result = await db.execute(select(Folder).where(Folder.id == content_id))
+        folder = result.scalar_one_or_none()
+        return folder.name if folder else None
+    return None
