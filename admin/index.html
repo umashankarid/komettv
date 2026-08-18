@@ -1592,7 +1592,7 @@
             try {
                 await api('/settings/orientation', { method: 'PUT', body: { value } });
                 updateOrientationUI(value);
-                toast('Orientation updated! Player will adapt within 5 minutes.', 'success');
+                toast('Orientation updated! Player will adapt within 30 seconds.', 'success');
             } catch (err) { toast(err.message, 'error'); }
         }
 
@@ -1600,7 +1600,7 @@
             try {
                 await api('/settings/rotation', { method: 'PUT', body: { value } });
                 updateRotationUI(value);
-                toast('Rotation updated! Player will adapt within 5 minutes.', 'success');
+                toast('Rotation updated! Player will adapt within 30 seconds.', 'success');
             } catch (err) { toast(err.message, 'error'); }
         }
 
