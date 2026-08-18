@@ -50,6 +50,7 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+            background: #f5f5f5;
         }
 
         /* Video slides */
@@ -57,6 +58,10 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+        }
+
+        .slide.slide-image {
+            background: #f5f5f5;
         }
 
         /* Announcement slides */
@@ -296,6 +301,7 @@
 
             switch (item.content_type) {
                 case 'image':
+                    slide.classList.add('slide-image');
                     slide.innerHTML = `<img src="${item.data.url}" alt="${item.data.filename || ''}" />`;
                     break;
 
