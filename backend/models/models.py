@@ -74,6 +74,19 @@ class DisplaySettings(Base):
     value = Column(String(500), nullable=False)
 
 
+class StoredFile(Base):
+    __tablename__ = "stored_files"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    filename = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    folder = Column(String(500), nullable=False, default="/")  # Virtual folder path
+    uploaded_by = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 class Folder(Base):
     __tablename__ = "folders"
 

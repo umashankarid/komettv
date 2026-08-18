@@ -416,6 +416,7 @@
             <a href="#" data-section="folders">📁 Folders</a>
             <a href="#" data-section="announcements">📢 Announcements</a>
             <a href="#" data-section="playlist">📋 Playlist</a>
+            <a href="#" data-section="storage">💾 Storage</a>
             <a href="#" data-section="settings">⚙️ Settings</a>
             <a href="#" data-section="admins">👤 Admins</a>
         </nav>
@@ -509,6 +510,34 @@
                     <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Drag and drop to reorder. Changes appear on the TV within 30 seconds.</p>
                     <div id="playlist-items"></div>
                     <div id="playlist-empty" class="empty-state" style="display:none;">Playlist is empty. Add content above.</div>
+                </div>
+            </section>
+
+            <!-- Storage -->
+            <section id="section-storage" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>💾 Club Storage</h2>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary" onclick="showModal('storage-folder-modal')">+ New Folder</button>
+                        <button class="btn btn-primary" onclick="showModal('storage-upload-modal')">+ Upload File</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;" id="storage-breadcrumb"></div>
+                    <div id="storage-folders-list" style="margin-bottom:16px;"></div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Filename</th>
+                                <th>Size</th>
+                                <th>Uploaded by</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="storage-files-table"></tbody>
+                    </table>
+                    <div id="storage-empty" class="empty-state" style="display:none;">This folder is empty.</div>
                 </div>
             </section>
 
@@ -667,6 +696,42 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="storage-upload-modal">
+        <div class="modal">
+            <h2>Upload to Storage</h2>
+            <form id="storage-upload-form">
+                <div class="form-group">
+                    <label>Choose files (any type, max 200MB each)</label>
+                    <input type="file" id="storage-upload-file" multiple required>
+                </div>
+                <div class="form-group">
+                    <label>Folder</label>
+                    <select id="storage-upload-folder"></select>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('storage-upload-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="storage-folder-modal">
+        <div class="modal">
+            <h2>New Storage Folder</h2>
+            <form id="storage-folder-form">
+                <div class="form-group">
+                    <label>Folder Path</label>
+                    <input type="text" id="storage-folder-path" required placeholder="e.g. /documents/2026">
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Create</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('storage-folder-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="folder-create-modal">
         <div class="modal">
             <h2>New Folder</h2>
@@ -812,6 +877,7 @@
                 case 'folders': loadFolders(); break;
                 case 'announcements': loadAnnouncements(); break;
                 case 'playlist': loadPlaylist(); break;
+                case 'storage': loadStorage(); break;
                 case 'settings': loadSettings(); break;
                 case 'admins': loadAdmins(); break;
             }
@@ -1309,6 +1375,152 @@
             try {
                 await api('/playlist/reorder', { method: 'POST', body: { item_ids } });
                 toast('Order saved!', 'success');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // --- Storage ---
+        let storageCurrentFolder = '/';
+
+        async function loadStorage() {
+            await loadStorageFiles();
+        }
+
+        async function loadStorageFiles() {
+            try {
+                const [files, folders] = await Promise.all([
+                    api(`/storage?folder=${encodeURIComponent(storageCurrentFolder)}`),
+                    api('/storage/folders'),
+                ]);
+
+                // Breadcrumb
+                const breadcrumb = document.getElementById('storage-breadcrumb');
+                const parts = storageCurrentFolder.split('/').filter(Boolean);
+                let breadcrumbHtml = `<button class="btn btn-sm ${storageCurrentFolder === '/' ? 'btn-primary' : 'btn-secondary'}" onclick="navigateStorage('/')">/root</button>`;
+                let path = '';
+                for (const part of parts) {
+                    path += '/' + part;
+                    const p = path;
+                    breadcrumbHtml += `<span style="color:var(--gray-500);">/</span><button class="btn btn-sm ${storageCurrentFolder === p ? 'btn-primary' : 'btn-secondary'}" onclick="navigateStorage('${p}')">${escapeHtml(part)}</button>`;
+                }
+                breadcrumb.innerHTML = breadcrumbHtml;
+
+                // Subfolders (show folders that are direct children of current)
+                const subfolders = folders.filter(f => {
+                    if (f.path === storageCurrentFolder) return false;
+                    if (storageCurrentFolder === '/') {
+                        // Show top-level folders
+                        const parts = f.path.split('/').filter(Boolean);
+                        return parts.length === 1;
+                    } else {
+                        return f.path.startsWith(storageCurrentFolder + '/') &&
+                            f.path.replace(storageCurrentFolder + '/', '').indexOf('/') === -1;
+                    }
+                });
+
+                const foldersDiv = document.getElementById('storage-folders-list');
+                if (subfolders.length > 0) {
+                    foldersDiv.innerHTML = subfolders.map(f => `
+                        <button class="btn btn-secondary" style="margin-right:8px; margin-bottom:8px;" onclick="navigateStorage('${f.path}')">
+                            📁 ${escapeHtml(f.path.split('/').pop())} (${f.file_count})
+                        </button>
+                    `).join('') + (storageCurrentFolder !== '/' ? `<button class="btn btn-danger btn-sm" style="margin-bottom:8px;" onclick="deleteStorageFolder()">Delete this folder</button>` : '');
+                } else {
+                    foldersDiv.innerHTML = storageCurrentFolder !== '/' ? `<button class="btn btn-danger btn-sm" onclick="deleteStorageFolder()">Delete this folder</button>` : '';
+                }
+
+                // Files table
+                const table = document.getElementById('storage-files-table');
+                const empty = document.getElementById('storage-empty');
+
+                if (files.length === 0 && subfolders.length === 0) {
+                    empty.style.display = 'block';
+                } else {
+                    empty.style.display = 'none';
+                }
+
+                table.innerHTML = files.map(f => `
+                    <tr>
+                        <td><strong>${escapeHtml(f.original_filename)}</strong></td>
+                        <td>${formatSize(f.file_size)}</td>
+                        <td>${escapeHtml(f.uploaded_by || '-')}</td>
+                        <td>${formatDate(f.created_at)}</td>
+                        <td class="actions">
+                            <a href="/api/storage/download/${f.id}" class="btn btn-secondary btn-sm" target="_blank">Download</a>
+                            <button class="btn btn-danger btn-sm" onclick="deleteStorageFile(${f.id})">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Update folder select in upload modal
+                const select = document.getElementById('storage-upload-folder');
+                select.innerHTML = folders.map(f => `<option value="${f.path}" ${f.path === storageCurrentFolder ? 'selected' : ''}>${f.path}</option>`).join('');
+
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        function navigateStorage(folder) {
+            storageCurrentFolder = folder;
+            loadStorageFiles();
+        }
+
+        document.getElementById('storage-upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const files = document.getElementById('storage-upload-file').files;
+            const folder = document.getElementById('storage-upload-folder').value;
+            if (!files.length) return;
+
+            let uploaded = 0, errors = 0;
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('folder', folder);
+                try {
+                    await api('/storage', { method: 'POST', body: formData });
+                    uploaded++;
+                } catch (err) {
+                    errors++;
+                }
+            }
+
+            hideModal('storage-upload-modal');
+            if (errors > 0) {
+                toast(`Uploaded ${uploaded}, ${errors} failed`, 'error');
+            } else {
+                toast(`${uploaded} file${uploaded > 1 ? 's' : ''} uploaded!`, 'success');
+            }
+            loadStorageFiles();
+        });
+
+        document.getElementById('storage-folder-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const path = document.getElementById('storage-folder-path').value;
+            const formData = new FormData();
+            formData.append('path', path);
+            try {
+                await api('/storage/folder', { method: 'POST', body: formData });
+                toast('Folder created!', 'success');
+                hideModal('storage-folder-modal');
+                document.getElementById('storage-folder-form').reset();
+                loadStorageFiles();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        async function deleteStorageFile(id) {
+            if (!confirm('Delete this file?')) return;
+            try {
+                await api(`/storage/${id}`, { method: 'DELETE' });
+                toast('File deleted', 'success');
+                loadStorageFiles();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function deleteStorageFolder() {
+            if (!confirm(`Delete folder "${storageCurrentFolder}" and all files in it?`)) return;
+            try {
+                await api(`/storage/folder${storageCurrentFolder}`, { method: 'DELETE' });
+                toast('Folder deleted', 'success');
+                storageCurrentFolder = '/';
+                loadStorageFiles();
             } catch (err) { toast(err.message, 'error'); }
         }
 

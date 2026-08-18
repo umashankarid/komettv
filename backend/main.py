@@ -11,6 +11,7 @@ from backend.api.announcements import router as announcements_router
 from backend.api.playlist import router as playlist_router
 from backend.api.folders import router as folders_router
 from backend.api.settings import router as settings_router
+from backend.api.storage import router as storage_router
 
 
 @asynccontextmanager
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
     os.makedirs(os.path.join(settings.MEDIA_PATH, "folders"), exist_ok=True)
     os.makedirs(os.path.join(settings.MEDIA_PATH, "music"), exist_ok=True)
     os.makedirs(os.path.join(settings.MEDIA_PATH, "thumbnails"), exist_ok=True)
+    os.makedirs(os.path.join(settings.MEDIA_PATH, "storage"), exist_ok=True)
 
     await init_db()
     yield
@@ -41,6 +43,7 @@ app.include_router(announcements_router)
 app.include_router(playlist_router)
 app.include_router(folders_router)
 app.include_router(settings_router)
+app.include_router(storage_router)
 
 
 # Serve TV player at /display/main

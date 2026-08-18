@@ -7,6 +7,7 @@ from backend.models.models import (
     PlaylistItem,
     ContentType,
     DisplaySettings,
+    StoredFile,
     Folder,
     FolderItem,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "PlaylistItem",
     "ContentType",
     "DisplaySettings",
+    "StoredFile",
     "Folder",
     "FolderItem",
 ]
