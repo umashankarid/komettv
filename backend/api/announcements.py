@@ -17,6 +17,10 @@ class AnnouncementCreate(BaseModel):
     title: str
     content: str  # HTML content
     background_color: str | None = None  # Hex color e.g. #3B82F6
+    title_color: str | None = None
+    content_color: str | None = None
+    title_size: str | None = None
+    content_size: str | None = None
     active: bool = True
 
 
@@ -24,6 +28,10 @@ class AnnouncementUpdate(BaseModel):
     title: str | None = None
     content: str | None = None
     background_color: str | None = None
+    title_color: str | None = None
+    content_color: str | None = None
+    title_size: str | None = None
+    content_size: str | None = None
     active: bool | None = None
 
 
@@ -32,6 +40,10 @@ class AnnouncementOut(BaseModel):
     title: str
     content: str
     background_color: str | None
+    title_color: str | None
+    content_color: str | None
+    title_size: str | None
+    content_size: str | None
     active: bool
     created_at: datetime
     updated_at: datetime
@@ -58,6 +70,10 @@ async def create_announcement(
         title=data.title,
         content=data.content,
         background_color=data.background_color,
+        title_color=data.title_color,
+        content_color=data.content_color,
+        title_size=data.title_size,
+        content_size=data.content_size,
         active=data.active,
     )
     db.add(announcement)
@@ -84,6 +100,14 @@ async def update_announcement(
         announcement.content = data.content
     if data.background_color is not None:
         announcement.background_color = data.background_color
+    if data.title_color is not None:
+        announcement.title_color = data.title_color
+    if data.content_color is not None:
+        announcement.content_color = data.content_color
+    if data.title_size is not None:
+        announcement.title_size = data.title_size
+    if data.content_size is not None:
+        announcement.content_size = data.content_size
     if data.active is not None:
         announcement.active = data.active
 

@@ -49,6 +49,10 @@ class Announcement(Base):
     title = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)  # HTML content
     background_color = Column(String(7), nullable=True)  # Hex color e.g. #3B82F6
+    title_color = Column(String(7), nullable=True)  # Hex color, default white
+    content_color = Column(String(7), nullable=True)  # Hex color, default white
+    title_size = Column(String(10), nullable=True)  # e.g. "4rem", "3rem"
+    content_size = Column(String(10), nullable=True)  # e.g. "2rem", "1.5rem"
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

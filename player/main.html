@@ -303,9 +303,11 @@
                     if (item.data.background_color) {
                         slide.style.background = item.data.background_color;
                     }
+                    const titleStyle = `${item.data.title_color ? 'color:' + item.data.title_color + ';' : ''}${item.data.title_size ? 'font-size:' + item.data.title_size + ';' : ''}`;
+                    const contentStyle = `${item.data.content_color ? 'color:' + item.data.content_color + ';' : ''}${item.data.content_size ? 'font-size:' + item.data.content_size + ';' : ''}`;
                     slide.innerHTML = `
-                        <div class="announcement-title">${escapeHtml(item.data.title)}</div>
-                        <div class="announcement-content">${item.data.content}</div>
+                        <div class="announcement-title" style="${titleStyle}">${escapeHtml(item.data.title)}</div>
+                        <div class="announcement-content" style="${contentStyle}">${item.data.content}</div>
                     `;
                     break;
             }

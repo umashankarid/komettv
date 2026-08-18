@@ -665,6 +665,40 @@
                     <input type="color" id="announcement-color" value="#3B82F6" style="width:50px; height:36px; border:none; cursor:pointer;">
                     <span id="announcement-color-label" style="margin-left:8px; font-size:0.85rem; color:var(--gray-500);">#3B82F6</span>
                 </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group">
+                        <label>Title Color</label>
+                        <input type="color" id="announcement-title-color" value="#FFFFFF" style="width:50px; height:36px; border:none; cursor:pointer;">
+                        <span style="margin-left:8px; font-size:0.8rem; color:var(--gray-500);">Default: white</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Content Color</label>
+                        <input type="color" id="announcement-content-color" value="#FFFFFF" style="width:50px; height:36px; border:none; cursor:pointer;">
+                        <span style="margin-left:8px; font-size:0.8rem; color:var(--gray-500);">Default: white</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Title Size</label>
+                        <select id="announcement-title-size" style="padding:8px; border:1px solid var(--gray-300); border-radius:6px;">
+                            <option value="">Default (4rem)</option>
+                            <option value="2rem">Small (2rem)</option>
+                            <option value="3rem">Medium (3rem)</option>
+                            <option value="4rem">Large (4rem)</option>
+                            <option value="5rem">Extra Large (5rem)</option>
+                            <option value="6rem">Huge (6rem)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Content Size</label>
+                        <select id="announcement-content-size" style="padding:8px; border:1px solid var(--gray-300); border-radius:6px;">
+                            <option value="">Default (2.2rem)</option>
+                            <option value="1.5rem">Small (1.5rem)</option>
+                            <option value="2rem">Medium (2rem)</option>
+                            <option value="2.5rem">Large (2.5rem)</option>
+                            <option value="3rem">Extra Large (3rem)</option>
+                            <option value="4rem">Huge (4rem)</option>
+                        </select>
+                    </div>
+                </div>
                 <div style="display:flex; gap:8px;">
                     <button type="submit" class="btn btn-primary">Save</button>
                     <button type="button" class="btn btn-secondary" onclick="hideModal('announcement-modal')">Cancel</button>
@@ -1054,6 +1088,10 @@
             document.getElementById('announcement-content').value = announcement ? announcement.content : '';
             const color = (announcement && announcement.background_color) ? announcement.background_color : '#3B82F6';
             setAnnouncementColor(color);
+            document.getElementById('announcement-title-color').value = (announcement && announcement.title_color) || '#FFFFFF';
+            document.getElementById('announcement-content-color').value = (announcement && announcement.content_color) || '#FFFFFF';
+            document.getElementById('announcement-title-size').value = (announcement && announcement.title_size) || '';
+            document.getElementById('announcement-content-size').value = (announcement && announcement.content_size) || '';
             showModal('announcement-modal');
         }
 
@@ -1081,13 +1119,19 @@
             const title = document.getElementById('announcement-title').value;
             const content = document.getElementById('announcement-content').value;
             const background_color = document.getElementById('announcement-color').value;
+            const title_color = document.getElementById('announcement-title-color').value;
+            const content_color = document.getElementById('announcement-content-color').value;
+            const title_size = document.getElementById('announcement-title-size').value || null;
+            const content_size = document.getElementById('announcement-content-size').value || null;
+
+            const body = { title, content, background_color, title_color, content_color, title_size, content_size };
 
             try {
                 if (id) {
-                    await api(`/announcements/${id}`, { method: 'PUT', body: { title, content, background_color } });
+                    await api(`/announcements/${id}`, { method: 'PUT', body });
                     toast('Announcement updated!', 'success');
                 } else {
-                    await api('/announcements', { method: 'POST', body: { title, content, background_color } });
+                    await api('/announcements', { method: 'POST', body });
                     toast('Announcement created!', 'success');
                 }
                 hideModal('announcement-modal');
