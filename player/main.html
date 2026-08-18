@@ -93,9 +93,30 @@
         .slide-announcement .announcement-content h2 { font-size: 3rem; margin-bottom: 15px; }
         .slide-announcement .announcement-content p { margin-bottom: 15px; }
 
-        /* Vertical (portrait) mode adjustments */
+        /* Vertical (portrait) mode - rotates content for vertically mounted TV */
+        body.vertical #player {
+            transform: rotate(90deg);
+            transform-origin: center center;
+            width: 100vh;
+            height: 100vw;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: calc(-100vw / 2);
+            margin-left: calc(-100vh / 2);
+        }
+
+        body.vertical #clock {
+            transform: rotate(90deg);
+            transform-origin: center center;
+            bottom: auto;
+            right: auto;
+            top: 20px;
+            left: 30px;
+        }
+
         body.vertical .slide-announcement {
-            padding: 80px 40px;
+            padding: 60px 40px;
         }
 
         body.vertical .slide-announcement .announcement-title {
@@ -105,19 +126,6 @@
         body.vertical .slide-announcement .announcement-content {
             font-size: 1.8rem;
             max-width: 90%;
-        }
-
-        body.vertical .slide img,
-        body.vertical .slide video {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        body.vertical #clock {
-            font-size: 1.4rem;
-            bottom: 15px;
-            right: 20px;
         }
 
         /* Loading / Empty state */
