@@ -157,6 +157,8 @@
         let playlistVersion = '';
         let refreshInterval = 30;
         let advanceTimeout = null;
+        let videoWatchdog = null;
+        let lastSlideChange = Date.now();
 
         // Background music
         let bgMusic = null;
@@ -288,14 +290,29 @@
             const slide = document.createElement('div');
             slide.className = 'slide';
 
+            // Cache-bust URLs to prevent stale media on TV Bro/WebView
+            const cacheBust = `?v=${Date.now()}`;
+
             switch (item.content_type) {
                 case 'image':
                     slide.classList.add('slide-image');
-                    slide.innerHTML = `<img src="${item.data.url}" alt="${item.data.filename || ''}" />`;
+                    slide.innerHTML = `<img src="${item.data.url}${cacheBust}" alt="${item.data.filename || ''}" />`;
                     break;
 
                 case 'video':
-                    slide.innerHTML = `<video src="${item.data.url}" autoplay playsinline></video>`;
+                    const video = document.createElement('video');
+                    video.autoplay = true;
+                    video.playsInline = true;
+                    video.muted = false;
+                    video.preload = 'auto';
+                    // Explicitly reset and load to prevent WebView freezing
+                    video.pause();
+                    video.removeAttribute('src');
+                    video.load();
+                    video.src = item.data.url + cacheBust;
+                    video.load();
+                    video.play().catch(() => {});
+                    slide.appendChild(video);
                     break;
 
                 case 'announcement':
@@ -336,8 +353,15 @@
             if (currentSlide) {
                 const oldSlide = currentSlide;
                 oldSlide.style.zIndex = 1;
-                // Wait for new slide to fully fade in, then remove old
+                // Wait for new slide to fully fade in, then clean up old
                 setTimeout(() => {
+                    // Properly destroy video elements to free memory
+                    const oldVideo = oldSlide.querySelector('video');
+                    if (oldVideo) {
+                        oldVideo.pause();
+                        oldVideo.removeAttribute('src');
+                        oldVideo.load();
+                    }
                     if (oldSlide.parentNode) {
                         oldSlide.parentNode.removeChild(oldSlide);
                     }
@@ -358,14 +382,44 @@
                 clearTimeout(advanceTimeout);
                 advanceTimeout = null;
             }
+            if (videoWatchdog) {
+                clearInterval(videoWatchdog);
+                videoWatchdog = null;
+            }
 
             if (item.content_type === 'video') {
                 const video = currentSlide.querySelector('video');
                 if (video) {
                     video.addEventListener('ended', advanceSlide, { once: true });
                     video.addEventListener('error', () => {
-                        advanceTimeout = setTimeout(advanceSlide, 5000);
+                        advanceTimeout = setTimeout(advanceSlide, 3000);
                     }, { once: true });
+
+                    // Watchdog: if video is stuck for 20 seconds, skip it
+                    let lastTime = -1;
+                    let stuckCount = 0;
+                    videoWatchdog = setInterval(() => {
+                        if (!video.paused && video.currentTime === lastTime) {
+                            stuckCount++;
+                        } else {
+                            stuckCount = 0;
+                        }
+                        lastTime = video.currentTime;
+                        if (stuckCount >= 4) { // 4 * 5s = 20 seconds stuck
+                            clearInterval(videoWatchdog);
+                            videoWatchdog = null;
+                            video.pause();
+                            video.removeAttribute('src');
+                            video.load();
+                            advanceSlide();
+                        }
+                    }, 5000);
+
+                    // Failsafe: no video should play longer than 5 minutes
+                    advanceTimeout = setTimeout(() => {
+                        if (videoWatchdog) { clearInterval(videoWatchdog); videoWatchdog = null; }
+                        advanceSlide();
+                    }, 5 * 60 * 1000);
                 } else {
                     advanceTimeout = setTimeout(advanceSlide, 5000);
                 }
@@ -377,6 +431,7 @@
 
         function advanceSlide() {
             if (expandedPlaylist.length === 0) return;
+            lastSlideChange = Date.now();
             currentIndex = (currentIndex + 1) % expandedPlaylist.length;
             showSlide(currentIndex);
         }
@@ -464,6 +519,14 @@
         // Start
         requestWakeLock();
         init();
+
+        // Page-level watchdog: if no slide change for 3 minutes, reload page
+        setInterval(() => {
+            if (expandedPlaylist.length > 0 && (Date.now() - lastSlideChange) > 3 * 60 * 1000) {
+                console.log('Player stuck — reloading page');
+                location.reload();
+            }
+        }, 30000);
     </script>
 </body>
 </html>
