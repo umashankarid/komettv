@@ -125,7 +125,7 @@
 
         /* Clock overlay */
         #clock {
-            position: fixed;
+            position: absolute;
             bottom: 20px;
             right: 30px;
             color: rgba(0, 0, 0, 0.5);
@@ -142,8 +142,8 @@
             <p>🏸 Komet TV</p>
             <p style="font-size: 1.2rem; margin-top: 10px; opacity: 0.7;">Loading playlist content...</p>
         </div>
+        <div id="clock"></div>
     </div>
-    <div id="clock"></div>
 
     <script>
         const PLAYER = document.getElementById('player');
@@ -421,7 +421,7 @@
             const player = document.getElementById('player');
             const deg = parseInt(degrees) || 0;
 
-            // Reset all inline styles first
+            // Reset inline styles
             player.removeAttribute('style');
 
             if (deg === 0) {
