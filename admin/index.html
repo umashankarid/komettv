@@ -359,8 +359,19 @@
 
         .modal h2 { margin-bottom: 20px; }
 
+        .mobile-menu-btn { display: none; }
+
         @media (max-width: 768px) {
-            .sidebar { display: none; }
+            .mobile-menu-btn { display: inline-flex; }
+            .sidebar {
+                display: none;
+                position: fixed;
+                z-index: 200;
+                width: 260px;
+                background: #fff;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            }
+            .sidebar.mobile-open { display: block; }
             .main-content { margin-left: 0; }
         }
 
@@ -402,7 +413,10 @@
     <!-- App -->
     <div id="app">
         <div class="topbar">
-            <h1>🏸 Komet TV Admin</h1>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <button class="btn btn-secondary btn-sm mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+                <h1>🏸 Komet TV Admin</h1>
+            </div>
             <div class="topbar-right">
                 <span id="current-user"></span>
                 <a href="/display/main" target="_blank" class="btn btn-secondary btn-sm">📺 View TV</a>
@@ -556,6 +570,17 @@
                         </button>
                     </div>
                     <p id="orientation-status" style="margin-top:12px; font-size:0.9rem; color:var(--gray-700);"></p>
+                </div>
+                <div class="card">
+                    <h2>Screen Rotation</h2>
+                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Fine-tune the rotation angle to match your TV mounting.</p>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <button id="btn-rot-0" class="btn btn-secondary" onclick="setRotation('0')" style="padding:12px 20px;">0°</button>
+                        <button id="btn-rot-90" class="btn btn-secondary" onclick="setRotation('90')" style="padding:12px 20px;">90°</button>
+                        <button id="btn-rot-180" class="btn btn-secondary" onclick="setRotation('180')" style="padding:12px 20px;">180°</button>
+                        <button id="btn-rot-270" class="btn btn-secondary" onclick="setRotation('270')" style="padding:12px 20px;">270°</button>
+                    </div>
+                    <p id="rotation-status" style="margin-top:12px; font-size:0.9rem; color:var(--gray-700);"></p>
                 </div>
             </section>
 
@@ -793,6 +818,18 @@
             if (res.status === 204) return null;
             return res.json();
         }
+
+        // --- Mobile Menu ---
+        function toggleMobileMenu() {
+            document.querySelector('.sidebar').classList.toggle('mobile-open');
+        }
+
+        // Close mobile menu when a nav item is clicked
+        document.querySelectorAll('.sidebar a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.remove('mobile-open');
+            });
+        });
 
         // --- Toast ---
         function toast(message, type = '') {
@@ -1529,6 +1566,7 @@
             try {
                 const settings = await api('/settings');
                 updateOrientationUI(settings.orientation);
+                updateRotationUI(settings.rotation);
             } catch (err) { toast(err.message, 'error'); }
         }
 
@@ -1542,11 +1580,27 @@
             status.textContent = `Current: ${orientation === 'vertical' ? 'Vertical (Portrait)' : 'Horizontal (Landscape)'}`;
         }
 
+        function updateRotationUI(rotation) {
+            ['0', '90', '180', '270'].forEach(r => {
+                const btn = document.getElementById(`btn-rot-${r}`);
+                btn.className = rotation === r ? 'btn btn-primary' : 'btn btn-secondary';
+            });
+            document.getElementById('rotation-status').textContent = `Current: ${rotation}° rotation`;
+        }
+
         async function setOrientation(value) {
             try {
                 await api('/settings/orientation', { method: 'PUT', body: { value } });
                 updateOrientationUI(value);
-                toast('Orientation updated! Player will adapt within 30 seconds.', 'success');
+                toast('Orientation updated! Player will adapt within 5 minutes.', 'success');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function setRotation(value) {
+            try {
+                await api('/settings/rotation', { method: 'PUT', body: { value } });
+                updateRotationUI(value);
+                toast('Rotation updated! Player will adapt within 5 minutes.', 'success');
             } catch (err) { toast(err.message, 'error'); }
         }
 

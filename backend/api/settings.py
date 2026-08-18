@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 # Default settings
 DEFAULTS = {
     "orientation": "vertical",  # "vertical" or "horizontal"
+    "rotation": "90",  # 0, 90, 180, 270 degrees
 }
 
 
@@ -23,6 +24,7 @@ class SettingUpdate(BaseModel):
 
 class SettingsOut(BaseModel):
     orientation: str
+    rotation: str
 
 
 # --- Routes ---
@@ -37,6 +39,7 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
 
     return SettingsOut(
         orientation=settings_dict.get("orientation", DEFAULTS["orientation"]),
+        rotation=settings_dict.get("rotation", DEFAULTS["rotation"]),
     )
 
 

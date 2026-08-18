@@ -93,28 +93,7 @@
         .slide-announcement .announcement-content h2 { font-size: 3rem; margin-bottom: 15px; }
         .slide-announcement .announcement-content p { margin-bottom: 15px; }
 
-        /* Vertical (portrait) mode - rotates content for vertically mounted TV */
-        body.vertical #player {
-            transform: rotate(90deg);
-            transform-origin: center center;
-            width: 100vh;
-            height: 100vw;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            margin-top: calc(-100vw / 2);
-            margin-left: calc(-100vh / 2);
-        }
-
-        body.vertical #clock {
-            transform: rotate(90deg);
-            transform-origin: center center;
-            bottom: auto;
-            right: auto;
-            top: 20px;
-            left: 30px;
-        }
-
+        /* Vertical (portrait) mode - layout adjustments */
         body.vertical .slide-announcement {
             padding: 60px 40px;
         }
@@ -428,6 +407,7 @@
                 if (res.ok) {
                     const settings = await res.json();
                     applyOrientation(settings.orientation);
+                    applyRotation(settings.rotation || '0');
                 }
             } catch (err) {
                 console.log('Failed to load settings:', err);
@@ -437,6 +417,42 @@
         function applyOrientation(orientation) {
             document.body.classList.remove('vertical', 'horizontal');
             document.body.classList.add(orientation);
+        }
+
+        function applyRotation(degrees) {
+            const player = document.getElementById('player');
+            const deg = parseInt(degrees) || 0;
+
+            if (deg === 0) {
+                player.style.transform = '';
+                player.style.width = '100%';
+                player.style.height = '100%';
+                player.style.position = 'relative';
+                player.style.top = '';
+                player.style.left = '';
+                player.style.marginTop = '';
+                player.style.marginLeft = '';
+            } else if (deg === 90 || deg === 270) {
+                player.style.transform = `rotate(${deg}deg)`;
+                player.style.transformOrigin = 'center center';
+                player.style.width = '100vh';
+                player.style.height = '100vw';
+                player.style.position = 'absolute';
+                player.style.top = '50%';
+                player.style.left = '50%';
+                player.style.marginTop = 'calc(-100vw / 2)';
+                player.style.marginLeft = 'calc(-100vh / 2)';
+            } else if (deg === 180) {
+                player.style.transform = 'rotate(180deg)';
+                player.style.transformOrigin = 'center center';
+                player.style.width = '100%';
+                player.style.height = '100%';
+                player.style.position = 'relative';
+                player.style.top = '';
+                player.style.left = '';
+                player.style.marginTop = '';
+                player.style.marginLeft = '';
+            }
         }
 
         // Prevent screen from sleeping
