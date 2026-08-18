@@ -15,7 +15,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #000;
+            background: #f5f5f5;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             cursor: none;
         }
@@ -124,7 +124,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #fff;
+            color: #333;
             font-size: 2rem;
             text-align: center;
             z-index: 100;
@@ -139,11 +139,11 @@
             position: fixed;
             bottom: 20px;
             right: 30px;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(0, 0, 0, 0.5);
             font-size: 1.8rem;
             font-weight: 300;
             z-index: 1000;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
         }
     </style>
 </head>
@@ -249,7 +249,7 @@
                         }
                     } else {
                         STATUS.classList.remove('hidden');
-                        STATUS.innerHTML = '<p>🏸 Komet TV</p><p style="font-size: 1.2rem; margin-top: 10px; opacity: 0.7;">No playlist content</p>';
+                        STATUS.innerHTML = '<p>🏸 Komet TV</p><p style="font-size: 1.2rem; margin-top: 10px; opacity: 0.6;">No playlist content</p>';
                     }
                 }
             }
