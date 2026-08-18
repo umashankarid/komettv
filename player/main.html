@@ -395,10 +395,8 @@
 
             setInterval(() => {
                 checkForUpdates();
+                loadDisplaySettings();
             }, refreshInterval * 1000);
-
-            // Refresh settings every 5 minutes
-            setInterval(loadDisplaySettings, 5 * 60 * 1000);
         }
 
         async function loadDisplaySettings() {
@@ -423,35 +421,24 @@
             const player = document.getElementById('player');
             const deg = parseInt(degrees) || 0;
 
+            // Reset all inline styles first
+            player.removeAttribute('style');
+
             if (deg === 0) {
-                player.style.transform = '';
-                player.style.width = '100%';
-                player.style.height = '100%';
-                player.style.position = 'relative';
-                player.style.top = '';
-                player.style.left = '';
-                player.style.marginTop = '';
-                player.style.marginLeft = '';
+                // No rotation needed
             } else if (deg === 90 || deg === 270) {
                 player.style.transform = `rotate(${deg}deg)`;
                 player.style.transformOrigin = 'center center';
                 player.style.width = '100vh';
                 player.style.height = '100vw';
-                player.style.position = 'absolute';
+                player.style.position = 'fixed';
                 player.style.top = '50%';
                 player.style.left = '50%';
-                player.style.marginTop = 'calc(-100vw / 2)';
-                player.style.marginLeft = 'calc(-100vh / 2)';
+                player.style.marginTop = 'calc(-50vw)';
+                player.style.marginLeft = 'calc(-50vh)';
             } else if (deg === 180) {
                 player.style.transform = 'rotate(180deg)';
                 player.style.transformOrigin = 'center center';
-                player.style.width = '100%';
-                player.style.height = '100%';
-                player.style.position = 'relative';
-                player.style.top = '';
-                player.style.left = '';
-                player.style.marginTop = '';
-                player.style.marginLeft = '';
             }
         }
 
