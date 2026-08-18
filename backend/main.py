@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from backend.database import init_db
 from backend.config import settings
 from backend.api.auth import router as auth_router
@@ -49,13 +49,21 @@ app.include_router(storage_router)
 # Serve TV player at /display/main
 @app.get("/display/main")
 async def serve_player():
-    return FileResponse("player/main.html", media_type="text/html")
+    response = FileResponse("player/main.html", media_type="text/html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 # Serve Admin frontend at /admin
 @app.get("/admin")
 async def serve_admin():
-    return FileResponse("admin/index.html", media_type="text/html")
+    response = FileResponse("admin/index.html", media_type="text/html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 # Serve static media files
