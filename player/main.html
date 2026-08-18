@@ -61,7 +61,7 @@
 
         /* Announcement slides */
         .slide-announcement {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
             flex-direction: column;
             padding: 60px;
             text-align: center;
@@ -72,19 +72,46 @@
             font-size: 4rem;
             font-weight: 700;
             margin-bottom: 40px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         .slide-announcement .announcement-content {
             font-size: 2.2rem;
             line-height: 1.5;
             max-width: 80%;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
 
         .slide-announcement .announcement-content h1 { font-size: 3.5rem; margin-bottom: 20px; }
         .slide-announcement .announcement-content h2 { font-size: 3rem; margin-bottom: 15px; }
         .slide-announcement .announcement-content p { margin-bottom: 15px; }
+
+        /* Vertical (portrait) mode adjustments */
+        body.vertical .slide-announcement {
+            padding: 80px 40px;
+        }
+
+        body.vertical .slide-announcement .announcement-title {
+            font-size: 3.2rem;
+        }
+
+        body.vertical .slide-announcement .announcement-content {
+            font-size: 1.8rem;
+            max-width: 90%;
+        }
+
+        body.vertical .slide img,
+        body.vertical .slide video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        body.vertical #clock {
+            font-size: 1.4rem;
+            bottom: 15px;
+            right: 20px;
+        }
 
         /* Loading / Empty state */
         #status {
@@ -278,6 +305,9 @@
 
                 case 'announcement':
                     slide.classList.add('slide-announcement');
+                    if (item.data.background_color) {
+                        slide.style.background = item.data.background_color;
+                    }
                     slide.innerHTML = `
                         <div class="announcement-title">${escapeHtml(item.data.title)}</div>
                         <div class="announcement-content">${item.data.content}</div>
@@ -360,11 +390,34 @@
 
         // --- Initialization ---
         async function init() {
+            // Fetch display settings
+            await loadDisplaySettings();
+
             await checkForUpdates();
 
             setInterval(() => {
                 checkForUpdates();
             }, refreshInterval * 1000);
+
+            // Refresh settings every 5 minutes
+            setInterval(loadDisplaySettings, 5 * 60 * 1000);
+        }
+
+        async function loadDisplaySettings() {
+            try {
+                const res = await fetch('/api/settings');
+                if (res.ok) {
+                    const settings = await res.json();
+                    applyOrientation(settings.orientation);
+                }
+            } catch (err) {
+                console.log('Failed to load settings:', err);
+            }
+        }
+
+        function applyOrientation(orientation) {
+            document.body.classList.remove('vertical', 'horizontal');
+            document.body.classList.add(orientation);
         }
 
         // Prevent screen from sleeping

@@ -48,6 +48,7 @@ class Announcement(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)  # HTML content
+    background_color = Column(String(7), nullable=True)  # Hex color e.g. #3B82F6
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
@@ -63,6 +64,14 @@ class PlaylistItem(Base):
     active = Column(Boolean, default=True)
     duration = Column(Integer, nullable=True)  # Override duration in seconds (null = use default)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class DisplaySettings(Base):
+    __tablename__ = "display_settings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String(100), unique=True, nullable=False)
+    value = Column(String(500), nullable=False)
 
 
 class Folder(Base):

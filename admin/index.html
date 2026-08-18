@@ -363,6 +363,20 @@
             .sidebar { display: none; }
             .main-content { margin-left: 0; }
         }
+
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.1);
+            border-color: var(--gray-700);
+        }
     </style>
 </head>
 <body>
@@ -402,6 +416,7 @@
             <a href="#" data-section="folders">📁 Folders</a>
             <a href="#" data-section="announcements">📢 Announcements</a>
             <a href="#" data-section="playlist">📋 Playlist</a>
+            <a href="#" data-section="settings">⚙️ Settings</a>
             <a href="#" data-section="admins">👤 Admins</a>
         </nav>
 
@@ -497,6 +512,24 @@
                 </div>
             </section>
 
+            <!-- Settings -->
+            <section id="section-settings" class="section-hidden">
+                <h2 style="margin-bottom:20px;">Display Settings</h2>
+                <div class="card">
+                    <h2>Screen Orientation</h2>
+                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Set how your TV display is mounted. The player will adapt its layout accordingly.</p>
+                    <div style="display:flex; gap:12px;">
+                        <button id="btn-vertical" class="btn btn-secondary" onclick="setOrientation('vertical')" style="padding:16px 24px; font-size:1rem;">
+                            📱 Vertical (Portrait)
+                        </button>
+                        <button id="btn-horizontal" class="btn btn-secondary" onclick="setOrientation('horizontal')" style="padding:16px 24px; font-size:1rem;">
+                            🖥️ Horizontal (Landscape)
+                        </button>
+                    </div>
+                    <p id="orientation-status" style="margin-top:12px; font-size:0.9rem; color:var(--gray-700);"></p>
+                </div>
+            </section>
+
             <!-- Admins -->
             <section id="section-admins" class="section-hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -562,6 +595,21 @@
                 <div class="form-group">
                     <label>Content (HTML)</label>
                     <textarea id="announcement-content" required placeholder="<h1>Heading</h1><p>Text here...</p>"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Background Color</label>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                        <button type="button" class="color-swatch" style="background:#3B82F6;" onclick="setAnnouncementColor('#3B82F6')"></button>
+                        <button type="button" class="color-swatch" style="background:#8B5CF6;" onclick="setAnnouncementColor('#8B5CF6')"></button>
+                        <button type="button" class="color-swatch" style="background:#EC4899;" onclick="setAnnouncementColor('#EC4899')"></button>
+                        <button type="button" class="color-swatch" style="background:#F59E0B;" onclick="setAnnouncementColor('#F59E0B')"></button>
+                        <button type="button" class="color-swatch" style="background:#10B981;" onclick="setAnnouncementColor('#10B981')"></button>
+                        <button type="button" class="color-swatch" style="background:#06B6D4;" onclick="setAnnouncementColor('#06B6D4')"></button>
+                        <button type="button" class="color-swatch" style="background:#F97316;" onclick="setAnnouncementColor('#F97316')"></button>
+                        <button type="button" class="color-swatch" style="background:#6366F1;" onclick="setAnnouncementColor('#6366F1')"></button>
+                    </div>
+                    <input type="color" id="announcement-color" value="#3B82F6" style="width:50px; height:36px; border:none; cursor:pointer;">
+                    <span id="announcement-color-label" style="margin-left:8px; font-size:0.85rem; color:var(--gray-500);">#3B82F6</span>
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button type="submit" class="btn btn-primary">Save</button>
@@ -764,6 +812,7 @@
                 case 'folders': loadFolders(); break;
                 case 'announcements': loadAnnouncements(); break;
                 case 'playlist': loadPlaylist(); break;
+                case 'settings': loadSettings(); break;
                 case 'admins': loadAdmins(); break;
             }
         }
@@ -900,8 +949,20 @@
             document.getElementById('announcement-id').value = announcement ? announcement.id : '';
             document.getElementById('announcement-title').value = announcement ? announcement.title : '';
             document.getElementById('announcement-content').value = announcement ? announcement.content : '';
+            const color = (announcement && announcement.background_color) ? announcement.background_color : '#3B82F6';
+            setAnnouncementColor(color);
             showModal('announcement-modal');
         }
+
+        function setAnnouncementColor(color) {
+            document.getElementById('announcement-color').value = color;
+            document.getElementById('announcement-color-label').textContent = color;
+        }
+
+        // Sync color input with label
+        document.getElementById('announcement-color').addEventListener('input', (e) => {
+            document.getElementById('announcement-color-label').textContent = e.target.value;
+        });
 
         async function editAnnouncement(id) {
             try {
@@ -916,13 +977,14 @@
             const id = document.getElementById('announcement-id').value;
             const title = document.getElementById('announcement-title').value;
             const content = document.getElementById('announcement-content').value;
+            const background_color = document.getElementById('announcement-color').value;
 
             try {
                 if (id) {
-                    await api(`/announcements/${id}`, { method: 'PUT', body: { title, content } });
+                    await api(`/announcements/${id}`, { method: 'PUT', body: { title, content, background_color } });
                     toast('Announcement updated!', 'success');
                 } else {
-                    await api('/announcements', { method: 'POST', body: { title, content } });
+                    await api('/announcements', { method: 'POST', body: { title, content, background_color } });
                     toast('Announcement created!', 'success');
                 }
                 hideModal('announcement-modal');
@@ -1247,6 +1309,32 @@
             try {
                 await api('/playlist/reorder', { method: 'POST', body: { item_ids } });
                 toast('Order saved!', 'success');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // --- Settings ---
+        async function loadSettings() {
+            try {
+                const settings = await api('/settings');
+                updateOrientationUI(settings.orientation);
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        function updateOrientationUI(orientation) {
+            const btnV = document.getElementById('btn-vertical');
+            const btnH = document.getElementById('btn-horizontal');
+            const status = document.getElementById('orientation-status');
+
+            btnV.className = orientation === 'vertical' ? 'btn btn-primary' : 'btn btn-secondary';
+            btnH.className = orientation === 'horizontal' ? 'btn btn-primary' : 'btn btn-secondary';
+            status.textContent = `Current: ${orientation === 'vertical' ? 'Vertical (Portrait)' : 'Horizontal (Landscape)'}`;
+        }
+
+        async function setOrientation(value) {
+            try {
+                await api('/settings/orientation', { method: 'PUT', body: { value } });
+                updateOrientationUI(value);
+                toast('Orientation updated! Player will adapt within 30 seconds.', 'success');
             } catch (err) { toast(err.message, 'error'); }
         }
 

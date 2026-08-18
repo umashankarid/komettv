@@ -234,6 +234,7 @@ async def _resolve_content(db: AsyncSession, item: PlaylistItem) -> dict | None:
         return {
             "title": announcement.title,
             "content": announcement.content,
+            "background_color": announcement.background_color,
         }
     elif item.content_type == ContentType.FOLDER:
         result = await db.execute(select(Folder).where(Folder.id == item.content_id))

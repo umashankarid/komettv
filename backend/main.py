@@ -10,6 +10,7 @@ from backend.api.media import router as media_router
 from backend.api.announcements import router as announcements_router
 from backend.api.playlist import router as playlist_router
 from backend.api.folders import router as folders_router
+from backend.api.settings import router as settings_router
 
 
 @asynccontextmanager
@@ -39,6 +40,7 @@ app.include_router(media_router)
 app.include_router(announcements_router)
 app.include_router(playlist_router)
 app.include_router(folders_router)
+app.include_router(settings_router)
 
 
 # Serve TV player at /display/main

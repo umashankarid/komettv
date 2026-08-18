@@ -16,12 +16,14 @@ router = APIRouter(prefix="/api/announcements", tags=["announcements"])
 class AnnouncementCreate(BaseModel):
     title: str
     content: str  # HTML content
+    background_color: str | None = None  # Hex color e.g. #3B82F6
     active: bool = True
 
 
 class AnnouncementUpdate(BaseModel):
     title: str | None = None
     content: str | None = None
+    background_color: str | None = None
     active: bool | None = None
 
 
@@ -29,6 +31,7 @@ class AnnouncementOut(BaseModel):
     id: int
     title: str
     content: str
+    background_color: str | None
     active: bool
     created_at: datetime
     updated_at: datetime
@@ -54,6 +57,7 @@ async def create_announcement(
     announcement = Announcement(
         title=data.title,
         content=data.content,
+        background_color=data.background_color,
         active=data.active,
     )
     db.add(announcement)
@@ -78,6 +82,8 @@ async def update_announcement(
         announcement.title = data.title
     if data.content is not None:
         announcement.content = data.content
+    if data.background_color is not None:
+        announcement.background_color = data.background_color
     if data.active is not None:
         announcement.active = data.active
 
