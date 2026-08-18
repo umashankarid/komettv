@@ -186,11 +186,22 @@ async def get_playlist_version(db: AsyncSession = Depends(get_db)):
     )
     items = result.scalars().all()
 
-    # Create a hash of the current playlist state
+    # Include content timestamps so edits trigger a version change
+    content_timestamps = []
+    for item in items:
+        if item.content_type == ContentType.ANNOUNCEMENT:
+            ann_result = await db.execute(
+                select(Announcement).where(Announcement.id == item.content_id)
+            )
+            ann = ann_result.scalar_one_or_none()
+            if ann and ann.updated_at:
+                content_timestamps.append(str(ann.updated_at))
+
+    # Create a hash of the current playlist state + content changes
     version_data = json.dumps([
         {"id": i.id, "pos": i.position, "type": i.content_type.value, "cid": i.content_id}
         for i in items
-    ])
+    ] + content_timestamps)
     version_hash = hashlib.md5(version_data.encode()).hexdigest()[:12]
 
     return PlaylistVersion(
