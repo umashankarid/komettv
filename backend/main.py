@@ -12,6 +12,7 @@ from backend.api.playlist import router as playlist_router
 from backend.api.folders import router as folders_router
 from backend.api.settings import router as settings_router
 from backend.api.storage import router as storage_router
+from backend.api.screens import router as screens_router
 
 
 @asynccontextmanager
@@ -44,11 +45,12 @@ app.include_router(playlist_router)
 app.include_router(folders_router)
 app.include_router(settings_router)
 app.include_router(storage_router)
+app.include_router(screens_router)
 
 
-# Serve TV player at /display/main
-@app.get("/display/main")
-async def serve_player():
+# Serve TV player at /display/main and /display/{slug}
+@app.get("/display/{slug}")
+async def serve_player(slug: str):
     response = FileResponse("player/main.html", media_type="text/html")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"

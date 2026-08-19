@@ -160,6 +160,10 @@
         let videoWatchdog = null;
         let lastSlideChange = Date.now();
 
+        // Screen detection from URL: /display/{slug}
+        const screenSlug = window.location.pathname.split('/display/')[1] || 'main';
+        let screenId = null; // null = default (main), set after fetching screen info
+
         // Background music
         let bgMusic = null;
         let currentMusicUrl = null;
@@ -175,7 +179,8 @@
         // --- Playlist fetching ---
         async function fetchPlaylist() {
             try {
-                const res = await fetch('/api/playlist/player');
+                const params = screenId !== null ? `?screen_id=${screenId}` : '';
+                const res = await fetch(`/api/playlist/player${params}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return await res.json();
             } catch (err) {
@@ -186,7 +191,8 @@
 
         async function fetchVersion() {
             try {
-                const res = await fetch('/api/playlist/version');
+                const params = screenId !== null ? `?screen_id=${screenId}` : '';
+                const res = await fetch(`/api/playlist/version${params}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return await res.json();
             } catch (err) {
@@ -458,6 +464,20 @@
 
         async function loadDisplaySettings() {
             try {
+                if (screenSlug !== 'main') {
+                    // Fetch screen-specific settings
+                    const res = await fetch(`/api/screens/by-slug/${screenSlug}`);
+                    if (res.ok) {
+                        const screen = await res.json();
+                        if (screen) {
+                            screenId = screen.id;
+                            applyOrientation(screen.orientation);
+                            applyRotation(screen.rotation || '0');
+                            return;
+                        }
+                    }
+                }
+                // Default screen: use global settings
                 const res = await fetch('/api/settings');
                 if (res.ok) {
                     const settings = await res.json();

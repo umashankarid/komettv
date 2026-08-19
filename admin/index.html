@@ -430,6 +430,7 @@
             <a href="#" data-section="folders">📁 Folders</a>
             <a href="#" data-section="announcements">📢 Announcements</a>
             <a href="#" data-section="playlist">📋 Playlist</a>
+            <a href="#" data-section="screens">📺 Screens</a>
             <a href="#" data-section="storage">💾 Storage</a>
             <a href="#" data-section="settings">⚙️ Settings</a>
             <a href="#" data-section="admins">👤 Admins</a>
@@ -518,12 +519,45 @@
             <section id="section-playlist" class="section-hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h2>Playlist</h2>
-                    <button class="btn btn-primary" onclick="showModal('playlist-add-modal')">+ Add Item</button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <select id="playlist-screen-select" onchange="loadPlaylist()" style="padding:8px 12px; border:1px solid var(--gray-300); border-radius:6px;">
+                            <option value="">Default (main)</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="showModal('playlist-add-modal')">+ Add Item</button>
+                    </div>
                 </div>
                 <div class="card">
                     <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Drag and drop to reorder. Changes appear on the TV within 30 seconds.</p>
                     <div id="playlist-items"></div>
                     <div id="playlist-empty" class="empty-state" style="display:none;">Playlist is empty. Add content above.</div>
+                </div>
+            </section>
+
+            <!-- Screens -->
+            <section id="section-screens" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>📺 Screens</h2>
+                    <button class="btn btn-primary" onclick="showModal('screen-modal')">+ New Screen</button>
+                </div>
+                <div class="card">
+                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">
+                        Default screen: <a href="/display/main" target="_blank"><strong>/display/main</strong></a> (uses global settings)<br>
+                        Each additional screen gets its own URL, playlist, and display settings.
+                    </p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>URL</th>
+                                <th>Orientation</th>
+                                <th>Rotation</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="screens-table"></tbody>
+                    </table>
+                    <div id="screens-empty" class="empty-state" style="display:none;">No additional screens. The default screen (/display/main) is always available.</div>
                 </div>
             </section>
 
@@ -755,6 +789,46 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="screen-modal">
+        <div class="modal">
+            <h2 id="screen-modal-title">New Screen</h2>
+            <form id="screen-form">
+                <input type="hidden" id="screen-edit-id">
+                <div class="form-group">
+                    <label>Screen Name</label>
+                    <input type="text" id="screen-name" required placeholder="e.g. Lobby TV">
+                </div>
+                <div class="form-group">
+                    <label>URL Slug (lowercase, no spaces)</label>
+                    <input type="text" id="screen-slug" required placeholder="e.g. lobby" pattern="[a-z0-9][a-z0-9\-]*">
+                    <span style="font-size:0.8rem; color:var(--gray-500);">URL will be: /display/<span id="screen-slug-preview">...</span></span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group">
+                        <label>Orientation</label>
+                        <select id="screen-orientation">
+                            <option value="horizontal">Horizontal</option>
+                            <option value="vertical">Vertical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rotation</label>
+                        <select id="screen-rotation">
+                            <option value="0">0°</option>
+                            <option value="90">90°</option>
+                            <option value="180">180°</option>
+                            <option value="270">270°</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('screen-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="storage-upload-modal">
         <div class="modal">
             <h2>Upload to Storage</h2>
@@ -948,6 +1022,7 @@
                 case 'folders': loadFolders(); break;
                 case 'announcements': loadAnnouncements(); break;
                 case 'playlist': loadPlaylist(); break;
+                case 'screens': loadScreens(); break;
                 case 'storage': loadStorage(); break;
                 case 'settings': loadSettings(); break;
                 case 'admins': loadAdmins(); break;
@@ -1299,7 +1374,19 @@
         // --- Playlist ---
         async function loadPlaylist() {
             try {
-                const items = await api('/playlist');
+                // Populate screen selector
+                const screenSelect = document.getElementById('playlist-screen-select');
+                try {
+                    const screens = await api('/screens');
+                    const currentVal = screenSelect.value;
+                    screenSelect.innerHTML = '<option value="">Default (main)</option>' +
+                        screens.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+                    screenSelect.value = currentVal;
+                } catch(e) {}
+
+                const selectedScreen = screenSelect.value;
+                const params = selectedScreen ? `?screen_id=${selectedScreen}` : '';
+                const items = await api(`/playlist${params}`);
                 const container = document.getElementById('playlist-items');
                 const empty = document.getElementById('playlist-empty');
 
@@ -1376,8 +1463,11 @@
 
             if (!content_type || !content_id) return;
 
+            const screen_id = document.getElementById('playlist-screen-select').value || null;
+            const body = { content_type, content_id, screen_id: screen_id ? parseInt(screen_id) : null };
+
             try {
-                await api('/playlist', { method: 'POST', body: { content_type, content_id } });
+                await api('/playlist', { method: 'POST', body });
                 toast('Added to playlist!', 'success');
                 hideModal('playlist-add-modal');
                 document.getElementById('playlist-add-form').reset();
@@ -1456,6 +1546,90 @@
             try {
                 await api('/playlist/reorder', { method: 'POST', body: { item_ids } });
                 toast('Order saved!', 'success');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // --- Screens ---
+        async function loadScreens() {
+            try {
+                const screens = await api('/screens');
+                const table = document.getElementById('screens-table');
+                const empty = document.getElementById('screens-empty');
+
+                if (screens.length === 0) {
+                    table.innerHTML = '';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                table.innerHTML = screens.map(s => `
+                    <tr>
+                        <td><strong>${escapeHtml(s.name)}</strong></td>
+                        <td><a href="/display/${s.slug}" target="_blank">/display/${s.slug}</a></td>
+                        <td>${s.orientation}</td>
+                        <td>${s.rotation}°</td>
+                        <td><span class="badge ${s.active ? 'badge-green' : 'badge-gray'}">${s.active ? 'Active' : 'Inactive'}</span></td>
+                        <td class="actions">
+                            <button class="btn btn-secondary btn-sm" onclick="editScreen(${s.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteScreen(${s.id})">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // Slug preview
+        document.getElementById('screen-slug').addEventListener('input', (e) => {
+            document.getElementById('screen-slug-preview').textContent = e.target.value || '...';
+        });
+
+        document.getElementById('screen-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('screen-edit-id').value;
+            const name = document.getElementById('screen-name').value;
+            const slug = document.getElementById('screen-slug').value;
+            const orientation = document.getElementById('screen-orientation').value;
+            const rotation = document.getElementById('screen-rotation').value;
+
+            try {
+                if (id) {
+                    await api(`/screens/${id}`, { method: 'PUT', body: { name, slug, orientation, rotation } });
+                    toast('Screen updated!', 'success');
+                } else {
+                    await api('/screens', { method: 'POST', body: { name, slug, orientation, rotation } });
+                    toast('Screen created!', 'success');
+                }
+                hideModal('screen-modal');
+                document.getElementById('screen-form').reset();
+                document.getElementById('screen-edit-id').value = '';
+                loadScreens();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        async function editScreen(id) {
+            try {
+                const screens = await api('/screens');
+                const screen = screens.find(s => s.id === id);
+                if (!screen) return;
+
+                document.getElementById('screen-modal-title').textContent = 'Edit Screen';
+                document.getElementById('screen-edit-id').value = screen.id;
+                document.getElementById('screen-name').value = screen.name;
+                document.getElementById('screen-slug').value = screen.slug;
+                document.getElementById('screen-slug-preview').textContent = screen.slug;
+                document.getElementById('screen-orientation').value = screen.orientation;
+                document.getElementById('screen-rotation').value = screen.rotation;
+                showModal('screen-modal');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function deleteScreen(id) {
+            if (!confirm('Delete this screen? Its playlist items will remain but become unassigned.')) return;
+            try {
+                await api(`/screens/${id}`, { method: 'DELETE' });
+                toast('Screen deleted', 'success');
+                loadScreens();
             } catch (err) { toast(err.message, 'error'); }
         }
 

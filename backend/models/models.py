@@ -62,6 +62,7 @@ class PlaylistItem(Base):
     __tablename__ = "playlist_items"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    screen_id = Column(Integer, nullable=True, index=True)  # null = legacy (default screen)
     content_type = Column(SAEnum(ContentType), nullable=False)
     content_id = Column(Integer, nullable=False)  # References media.id, announcement.id, or folder.id
     position = Column(Integer, nullable=False)  # Order in playlist
@@ -76,6 +77,18 @@ class DisplaySettings(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(String(100), unique=True, nullable=False)
     value = Column(String(500), nullable=False)
+
+
+class Screen(Base):
+    __tablename__ = "screens"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False)
+    slug = Column(String(100), unique=True, nullable=False)  # URL-friendly name
+    orientation = Column(String(20), nullable=False, default="horizontal")
+    rotation = Column(String(10), nullable=False, default="0")
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
 class StoredFile(Base):

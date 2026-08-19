@@ -21,6 +21,7 @@ router = APIRouter(prefix="/api/playlist", tags=["playlist"])
 class PlaylistItemCreate(BaseModel):
     content_type: ContentType
     content_id: int
+    screen_id: int | None = None  # null = default screen (main)
     duration: int | None = None  # Override default duration
 
 
@@ -29,6 +30,7 @@ class PlaylistItemOut(BaseModel):
     content_type: ContentType
     content_id: int
     content_name: str | None = None
+    screen_id: int | None = None
     position: int
     active: bool
     duration: int | None
@@ -61,10 +63,17 @@ class PlaylistVersion(BaseModel):
 
 @router.get("", response_model=list[PlaylistItemOut])
 async def list_playlist_items(
+    screen_id: int | None = None,
     db: AsyncSession = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin),
 ):
-    result = await db.execute(select(PlaylistItem).order_by(PlaylistItem.position))
+    query = select(PlaylistItem).order_by(PlaylistItem.position)
+    if screen_id is not None:
+        query = query.where(PlaylistItem.screen_id == screen_id)
+    else:
+        query = query.where(PlaylistItem.screen_id == None)
+
+    result = await db.execute(query)
     items = result.scalars().all()
 
     # Resolve content names
@@ -76,6 +85,7 @@ async def list_playlist_items(
             content_type=item.content_type,
             content_id=item.content_id,
             content_name=name,
+            screen_id=item.screen_id,
             position=item.position,
             active=item.active,
             duration=item.duration,
@@ -94,13 +104,19 @@ async def add_playlist_item(
     # Validate that the referenced content exists
     await _validate_content_exists(db, data.content_type, data.content_id)
 
-    # Get next position
-    result = await db.execute(select(func.max(PlaylistItem.position)))
+    # Get next position for this screen
+    pos_query = select(func.max(PlaylistItem.position))
+    if data.screen_id is not None:
+        pos_query = pos_query.where(PlaylistItem.screen_id == data.screen_id)
+    else:
+        pos_query = pos_query.where(PlaylistItem.screen_id == None)
+    result = await db.execute(pos_query)
     max_pos = result.scalar() or 0
 
     item = PlaylistItem(
         content_type=data.content_type,
         content_id=data.content_id,
+        screen_id=data.screen_id,
         position=max_pos + 1,
         duration=data.duration,
     )
@@ -167,13 +183,18 @@ async def reorder_playlist(
 # --- Routes (Public - for TV player) ---
 
 @router.get("/player", response_model=list[PlayerPlaylistItem])
-async def get_player_playlist(db: AsyncSession = Depends(get_db)):
+async def get_player_playlist(
+    screen_id: int | None = None,
+    db: AsyncSession = Depends(get_db),
+):
     """Public endpoint: returns the full playlist with resolved content for the TV player."""
-    result = await db.execute(
-        select(PlaylistItem)
-        .where(PlaylistItem.active == True)
-        .order_by(PlaylistItem.position)
-    )
+    query = select(PlaylistItem).where(PlaylistItem.active == True).order_by(PlaylistItem.position)
+    if screen_id is not None:
+        query = query.where(PlaylistItem.screen_id == screen_id)
+    else:
+        query = query.where(PlaylistItem.screen_id == None)
+
+    result = await db.execute(query)
     items = result.scalars().all()
 
     player_items = []
@@ -195,13 +216,18 @@ async def get_player_playlist(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/version", response_model=PlaylistVersion)
-async def get_playlist_version(db: AsyncSession = Depends(get_db)):
+async def get_playlist_version(
+    screen_id: int | None = None,
+    db: AsyncSession = Depends(get_db),
+):
     """Public endpoint: returns a version hash so the player knows when to refresh."""
-    result = await db.execute(
-        select(PlaylistItem)
-        .where(PlaylistItem.active == True)
-        .order_by(PlaylistItem.position)
-    )
+    query = select(PlaylistItem).where(PlaylistItem.active == True).order_by(PlaylistItem.position)
+    if screen_id is not None:
+        query = query.where(PlaylistItem.screen_id == screen_id)
+    else:
+        query = query.where(PlaylistItem.screen_id == None)
+
+    result = await db.execute(query)
     items = result.scalars().all()
 
     # Include content timestamps so edits trigger a version change
