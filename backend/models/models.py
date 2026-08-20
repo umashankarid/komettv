@@ -97,6 +97,8 @@ class Playlist(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(200), nullable=False)
+    music_path = Column(String(500), nullable=True)  # Background music for entire playlist
+    music_filename = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 

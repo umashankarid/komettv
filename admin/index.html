@@ -528,7 +528,10 @@
                     </div>
                 </div>
                 <div class="card">
-                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Drag and drop to reorder. Changes appear on the TV within 30 seconds.</p>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <p style="font-size:0.85rem; color:var(--gray-500);">Drag and drop to reorder. Changes appear on the TV within 30 seconds.</p>
+                        <div id="playlist-music-info" style="font-size:0.85rem;"></div>
+                    </div>
                     <div id="playlist-items"></div>
                     <div id="playlist-empty" class="empty-state" style="display:none;">Playlist is empty. Add content above.</div>
                 </div>
@@ -1458,6 +1461,18 @@
                 if (currentVal && playlists.find(p => p.id == currentVal)) {
                     select.value = currentVal;
                 }
+
+                // Show music info for selected playlist
+                const selectedPl = playlists.find(p => p.id == select.value);
+                const musicInfo = document.getElementById('playlist-music-info');
+                if (selectedPl) {
+                    if (selectedPl.music_filename) {
+                        musicInfo.innerHTML = `🎵 ${escapeHtml(selectedPl.music_filename)} <button class="btn btn-danger btn-sm" onclick="removePlaylistMusic()">Remove</button>`;
+                    } else {
+                        musicInfo.innerHTML = `<label class="btn btn-secondary btn-sm" style="cursor:pointer;">🎵 Add Music <input type="file" accept=".mp3" style="display:none;" onchange="uploadPlaylistMusic(this.files[0])"></label>`;
+                    }
+                }
+
                 loadPlaylistItems();
             } catch (err) { toast(err.message, 'error'); }
         }
@@ -1505,6 +1520,32 @@
         }
 
         document.getElementById('playlist-create-form').addEventListener('submit', async (e) => {
+        async function uploadPlaylistMusic(file) {
+            if (!file) return;
+            const playlistId = document.getElementById('playlist-select').value;
+            if (!playlistId) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                await api(`/playlist/lists/${playlistId}/music`, { method: 'POST', body: formData });
+                toast('Music uploaded! Will loop during all slides.', 'success');
+                loadPlaylist();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function removePlaylistMusic() {
+            const playlistId = document.getElementById('playlist-select').value;
+            if (!playlistId) return;
+            if (!confirm('Remove background music from this playlist?')) return;
+            try {
+                await api(`/playlist/lists/${playlistId}/music`, { method: 'DELETE' });
+                toast('Music removed', 'success');
+                loadPlaylist();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
             e.preventDefault();
             const name = document.getElementById('playlist-create-name').value;
             try {

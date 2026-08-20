@@ -1,7 +1,7 @@
 import hashlib
 import json
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,8 @@ class PlaylistCreate(BaseModel):
 class PlaylistOut(BaseModel):
     id: int
     name: str
+    music_filename: str | None
+    music_path: str | None
     item_count: int
     created_at: datetime
 
@@ -67,6 +69,7 @@ class PlayerPlaylistItem(BaseModel):
 class PlaylistVersion(BaseModel):
     version: str
     refresh_seconds: int
+    music_url: str | None = None
 
 
 # --- Playlist CRUD ---
@@ -87,6 +90,8 @@ async def list_playlists(
         out.append(PlaylistOut(
             id=pl.id,
             name=pl.name,
+            music_filename=pl.music_filename,
+            music_path=pl.music_path,
             item_count=count_result.scalar() or 0,
             created_at=pl.created_at,
         ))
@@ -103,7 +108,7 @@ async def create_playlist(
     db.add(pl)
     await db.flush()
     await db.refresh(pl)
-    return PlaylistOut(id=pl.id, name=pl.name, item_count=0, created_at=pl.created_at)
+    return PlaylistOut(id=pl.id, name=pl.name, music_filename=pl.music_filename, music_path=pl.music_path, item_count=0, created_at=pl.created_at)
 
 
 @router.delete("/lists/{playlist_id}")
@@ -124,6 +129,77 @@ async def delete_playlist(
 
     await db.delete(pl)
     return {"message": f"Playlist '{pl.name}' deleted"}
+
+
+@router.post("/lists/{playlist_id}/music")
+async def upload_playlist_music(
+    playlist_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    """Upload background music for a playlist."""
+    import os, uuid
+    result = await db.execute(select(Playlist).where(Playlist.id == playlist_id))
+    pl = result.scalar_one_or_none()
+    if not pl:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename")
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext != ".mp3":
+        raise HTTPException(status_code=400, detail="Only MP3 files allowed")
+
+    content = await file.read()
+    if len(content) > 50 * 1024 * 1024:  # 50MB max for music
+        raise HTTPException(status_code=400, detail="File too large. Max: 50MB")
+
+    # Delete old music if exists
+    if pl.music_path:
+        old_path = os.path.join(settings.MEDIA_PATH, pl.music_path.replace("/media/", ""))
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    # Save new music
+    unique_filename = f"{uuid.uuid4().hex}{ext}"
+    save_dir = os.path.join(settings.MEDIA_PATH, "music")
+    os.makedirs(save_dir, exist_ok=True)
+    file_path = os.path.join(save_dir, unique_filename)
+
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    pl.music_path = f"/media/music/{unique_filename}"
+    pl.music_filename = file.filename
+    db.add(pl)
+
+    return {"message": "Music uploaded", "filename": file.filename, "path": pl.music_path}
+
+
+@router.delete("/lists/{playlist_id}/music")
+async def remove_playlist_music(
+    playlist_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    """Remove background music from a playlist."""
+    import os
+    result = await db.execute(select(Playlist).where(Playlist.id == playlist_id))
+    pl = result.scalar_one_or_none()
+    if not pl:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    if pl.music_path:
+        full_path = os.path.join(settings.MEDIA_PATH, pl.music_path.replace("/media/", ""))
+        if os.path.exists(full_path):
+            os.remove(full_path)
+        pl.music_filename = None
+        pl.music_path = None
+        db.add(pl)
+
+    return {"message": "Music removed"}
 
 
 # --- Playlist Items ---
@@ -296,6 +372,10 @@ async def get_playlist_version(
     if not screen_obj or not screen_obj.playlist_id:
         return PlaylistVersion(version="empty", refresh_seconds=settings.PLAYLIST_REFRESH_SECONDS)
 
+    # Get playlist for music info
+    pl_result = await db.execute(select(Playlist).where(Playlist.id == screen_obj.playlist_id))
+    playlist_obj = pl_result.scalar_one_or_none()
+
     result = await db.execute(
         select(PlaylistItem)
         .where(PlaylistItem.playlist_id == screen_obj.playlist_id, PlaylistItem.active == True)
@@ -318,7 +398,11 @@ async def get_playlist_version(
     ] + content_timestamps)
     version_hash = hashlib.md5(version_data.encode()).hexdigest()[:12]
 
-    return PlaylistVersion(version=version_hash, refresh_seconds=settings.PLAYLIST_REFRESH_SECONDS)
+    return PlaylistVersion(
+        version=version_hash,
+        refresh_seconds=settings.PLAYLIST_REFRESH_SECONDS,
+        music_url=playlist_obj.music_path if playlist_obj else None,
+    )
 
 
 # --- Helpers ---

@@ -166,6 +166,8 @@
         // Background music
         let bgMusic = null;
         let currentMusicUrl = null;
+        let playlistMusic = null;  // Playlist-level background music (plays during all slides)
+        let playlistMusicUrl = null;
 
         // --- Clock ---
         function updateClock() {
@@ -228,6 +230,9 @@
 
             refreshInterval = versionData.refresh_seconds;
 
+            // Handle playlist-level music
+            handlePlaylistMusic(versionData.music_url);
+
             if (versionData.version !== playlistVersion) {
                 const newPlaylist = await fetchPlaylist();
                 if (newPlaylist) {
@@ -250,9 +255,53 @@
         }
 
         // --- Background Music ---
+        function handlePlaylistMusic(musicUrl) {
+            if (!musicUrl) {
+                // No playlist music - stop if playing
+                if (playlistMusic) {
+                    playlistMusic.pause();
+                    playlistMusic.src = '';
+                    playlistMusic = null;
+                    playlistMusicUrl = null;
+                }
+                return;
+            }
+
+            if (playlistMusicUrl === musicUrl) {
+                // Same music, ensure it's playing
+                if (playlistMusic && playlistMusic.paused) {
+                    playlistMusic.play().catch(() => {});
+                }
+                return;
+            }
+
+            // New or changed music
+            if (playlistMusic) {
+                playlistMusic.pause();
+                playlistMusic.src = '';
+            }
+            playlistMusic = new Audio(musicUrl);
+            playlistMusic.loop = true;
+            playlistMusic.volume = 0.7;
+            playlistMusic.play().catch(() => {});
+            playlistMusicUrl = musicUrl;
+        }
+
         function handleMusic(item) {
+            // If playlist-level music is active, it plays during everything (including videos)
+            // Only handle folder-specific music if no playlist music
+            if (playlistMusic && playlistMusicUrl) {
+                // Playlist music is playing — don't stop it for videos
+                // Mute video audio so it doesn't clash with playlist music
+                if (item.content_type === 'video' && currentSlide) {
+                    const video = currentSlide.querySelector('video');
+                    if (video) video.muted = true;
+                }
+                return;
+            }
+
+            // Folder-specific music behavior (pause during videos)
             if (item.content_type === 'video') {
-                // Pause music during video playback
                 if (bgMusic && !bgMusic.paused) {
                     bgMusic.pause();
                 }
@@ -260,9 +309,7 @@
             }
 
             if (item.music_url) {
-                // Start or continue music for this folder
                 if (currentMusicUrl !== item.music_url) {
-                    // Different music — switch
                     stopMusic();
                     bgMusic = new Audio(item.music_url);
                     bgMusic.loop = true;
@@ -270,11 +317,9 @@
                     bgMusic.play().catch(() => {});
                     currentMusicUrl = item.music_url;
                 } else if (bgMusic && bgMusic.paused) {
-                    // Same music was paused (after a video) — resume
                     bgMusic.play().catch(() => {});
                 }
             } else {
-                // No music for this item — stop any playing music
                 stopMusic();
             }
         }
