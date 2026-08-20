@@ -522,7 +522,8 @@
                     <h2>Playlist</h2>
                     <div style="display:flex; gap:8px; align-items:center;">
                         <select id="playlist-select" onchange="loadPlaylistItems()" style="padding:8px 12px; border:1px solid var(--gray-300); border-radius:6px;"></select>
-                        <button class="btn btn-secondary btn-sm" onclick="showModal('playlist-create-modal')">+ New Playlist</button>
+                        <button class="btn btn-secondary btn-sm" onclick="showModal('playlist-create-modal')">+ New</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCurrentPlaylist()">Delete</button>
                         <button class="btn btn-primary" onclick="showModal('playlist-add-modal')">+ Add Item</button>
                     </div>
                 </div>
@@ -1595,6 +1596,19 @@
                 await api(`/playlist/${id}`, { method: 'DELETE' });
                 toast('Removed from playlist', 'success');
                 loadPlaylistItems();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function deleteCurrentPlaylist() {
+            const playlistId = document.getElementById('playlist-select').value;
+            if (!playlistId) return;
+            const select = document.getElementById('playlist-select');
+            const name = select.options[select.selectedIndex].textContent;
+            if (!confirm(`Delete playlist "${name}"? All items in it will be removed.`)) return;
+            try {
+                await api(`/playlist/lists/${playlistId}`, { method: 'DELETE' });
+                toast('Playlist deleted', 'success');
+                loadPlaylist();
             } catch (err) { toast(err.message, 'error'); }
         }
 
