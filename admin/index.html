@@ -1122,20 +1122,22 @@
         // --- Dashboard ---
         async function loadDashboard() {
             try {
-                const [media, announcements, playlist] = await Promise.all([
+                const [media, announcements, playlists] = await Promise.all([
                     api('/media'),
                     api('/announcements'),
-                    api('/playlist'),
+                    api('/playlist/lists'),
                 ]);
 
                 const images = media.filter(m => m.media_type === 'image').length;
                 const videos = media.filter(m => m.media_type === 'video').length;
+                const totalItems = playlists.reduce((sum, p) => sum + p.item_count, 0);
 
                 document.getElementById('stats-grid').innerHTML = `
                     <div class="stat-card"><div class="stat-value">${images}</div><div class="stat-label">Images</div></div>
                     <div class="stat-card"><div class="stat-value">${videos}</div><div class="stat-label">Videos</div></div>
                     <div class="stat-card"><div class="stat-value">${announcements.length}</div><div class="stat-label">Announcements</div></div>
-                    <div class="stat-card"><div class="stat-value">${playlist.length}</div><div class="stat-label">In Playlist</div></div>
+                    <div class="stat-card"><div class="stat-value">${playlists.length}</div><div class="stat-label">Playlists</div></div>
+                    <div class="stat-card"><div class="stat-value">${totalItems}</div><div class="stat-label">Playlist Items</div></div>
                 `;
             } catch (err) {
                 console.error('Dashboard load failed:', err);
@@ -1542,8 +1544,10 @@
 
         async function removePlaylistMusic() {
             const playlistId = document.getElementById('playlist-select').value;
-            if (!playlistId) return;
-            if (!confirm('Remove background music from this playlist?')) return;
+            if (!playlistId) {
+                toast('No playlist selected', 'error');
+                return;
+            }
             try {
                 await api(`/playlist/lists/${playlistId}/music`, { method: 'DELETE' });
                 toast('Music removed', 'success');
