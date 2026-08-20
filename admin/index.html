@@ -1526,7 +1526,6 @@
             } catch (err) { toast(err.message, 'error'); }
         }
 
-        document.getElementById('playlist-create-form').addEventListener('submit', async (e) => {
         async function uploadPlaylistMusic(file) {
             if (!file) return;
             const playlistId = document.getElementById('playlist-select').value;
@@ -1555,6 +1554,7 @@
             } catch (err) { toast(err.message, 'error'); }
         }
 
+        document.getElementById('playlist-create-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('playlist-create-name').value;
             try {
