@@ -162,7 +162,6 @@
 
         // Screen detection from URL: /display/{slug}
         const screenSlug = window.location.pathname.split('/display/')[1] || 'main';
-        let screenId = null; // null = default (main), set after fetching screen info
 
         // Background music
         let bgMusic = null;
@@ -179,8 +178,7 @@
         // --- Playlist fetching ---
         async function fetchPlaylist() {
             try {
-                const params = screenId !== null ? `?screen_id=${screenId}` : '';
-                const res = await fetch(`/api/playlist/player${params}`);
+                const res = await fetch(`/api/playlist/player?screen=${screenSlug}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return await res.json();
             } catch (err) {
@@ -191,8 +189,7 @@
 
         async function fetchVersion() {
             try {
-                const params = screenId !== null ? `?screen_id=${screenId}` : '';
-                const res = await fetch(`/api/playlist/version${params}`);
+                const res = await fetch(`/api/playlist/version?screen=${screenSlug}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return await res.json();
             } catch (err) {
@@ -464,23 +461,19 @@
 
         async function loadDisplaySettings() {
             try {
-                if (screenSlug !== 'main') {
-                    // Fetch screen-specific settings
-                    const res = await fetch(`/api/screens/by-slug/${screenSlug}`);
-                    if (res.ok) {
-                        const screen = await res.json();
-                        if (screen) {
-                            screenId = screen.id;
-                            applyOrientation(screen.orientation);
-                            applyRotation(screen.rotation || '0');
-                            return;
-                        }
+                const res = await fetch(`/api/screens/by-slug/${screenSlug}`);
+                if (res.ok) {
+                    const screen = await res.json();
+                    if (screen) {
+                        applyOrientation(screen.orientation);
+                        applyRotation(screen.rotation || '0');
+                        return;
                     }
                 }
-                // Default screen: use global settings
-                const res = await fetch('/api/settings');
-                if (res.ok) {
-                    const settings = await res.json();
+                // Fallback to global settings
+                const settingsRes = await fetch('/api/settings');
+                if (settingsRes.ok) {
+                    const settings = await settingsRes.json();
                     applyOrientation(settings.orientation);
                     applyRotation(settings.rotation || '0');
                 }

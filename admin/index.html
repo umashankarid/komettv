@@ -521,9 +521,8 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h2>Playlist</h2>
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <select id="playlist-screen-select" onchange="loadPlaylist()" style="padding:8px 12px; border:1px solid var(--gray-300); border-radius:6px;">
-                            <option value="">Default (main)</option>
-                        </select>
+                        <select id="playlist-select" onchange="loadPlaylistItems()" style="padding:8px 12px; border:1px solid var(--gray-300); border-radius:6px;"></select>
+                        <button class="btn btn-secondary btn-sm" onclick="showModal('playlist-create-modal')">+ New Playlist</button>
                         <button class="btn btn-primary" onclick="showModal('playlist-add-modal')">+ Add Item</button>
                     </div>
                 </div>
@@ -550,8 +549,8 @@
                             <tr>
                                 <th>Name</th>
                                 <th>URL</th>
-                                <th>Orientation</th>
-                                <th>Rotation</th>
+                                <th>Playlist</th>
+                                <th>Display</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -766,6 +765,22 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="playlist-create-modal">
+        <div class="modal">
+            <h2>New Playlist</h2>
+            <form id="playlist-create-form">
+                <div class="form-group">
+                    <label>Playlist Name</label>
+                    <input type="text" id="playlist-create-name" required placeholder="e.g. Lobby Playlist">
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Create</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('playlist-create-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="playlist-add-modal">
         <div class="modal">
             <h2>Add to Playlist</h2>
@@ -859,6 +874,10 @@
                     <span style="font-size:0.8rem; color:var(--gray-500);">URL will be: /display/<span id="screen-slug-preview">...</span></span>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group">
+                        <label>Playlist</label>
+                        <select id="screen-playlist"></select>
+                    </div>
                     <div class="form-group">
                         <label>Orientation</label>
                         <select id="screen-orientation">
@@ -1430,19 +1449,24 @@
         // --- Playlist ---
         async function loadPlaylist() {
             try {
-                // Populate screen selector
-                const screenSelect = document.getElementById('playlist-screen-select');
-                try {
-                    const screens = await api('/screens');
-                    const currentVal = screenSelect.value;
-                    screenSelect.innerHTML = '<option value="">Default (main)</option>' +
-                        screens.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
-                    screenSelect.value = currentVal;
-                } catch(e) {}
+                // Load playlists and populate selector
+                const playlists = await api('/playlist/lists');
+                const select = document.getElementById('playlist-select');
+                const currentVal = select.value;
+                select.innerHTML = playlists.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (${p.item_count})</option>`).join('');
+                if (currentVal && playlists.find(p => p.id == currentVal)) {
+                    select.value = currentVal;
+                }
+                loadPlaylistItems();
+            } catch (err) { toast(err.message, 'error'); }
+        }
 
-                const selectedScreen = screenSelect.value;
-                const params = selectedScreen ? `?screen_id=${selectedScreen}` : '';
-                const items = await api(`/playlist${params}`);
+        async function loadPlaylistItems() {
+            const playlistId = document.getElementById('playlist-select').value;
+            if (!playlistId) return;
+
+            try {
+                const items = await api(`/playlist?playlist_id=${playlistId}`);
                 const container = document.getElementById('playlist-items');
                 const empty = document.getElementById('playlist-empty');
 
@@ -1478,6 +1502,20 @@
                 initDragAndDrop();
             } catch (err) { toast(err.message, 'error'); }
         }
+
+        document.getElementById('playlist-create-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('playlist-create-name').value;
+            try {
+                const pl = await api('/playlist/lists', { method: 'POST', body: { name } });
+                toast('Playlist created!', 'success');
+                hideModal('playlist-create-modal');
+                document.getElementById('playlist-create-form').reset();
+                await loadPlaylist();
+                document.getElementById('playlist-select').value = pl.id;
+                loadPlaylistItems();
+            } catch (err) { toast(err.message, 'error'); }
+        });
 
         async function loadPlaylistContentOptions() {
             const type = document.getElementById('playlist-content-type').value;
@@ -1516,26 +1554,24 @@
             e.preventDefault();
             const content_type = document.getElementById('playlist-content-type').value;
             const content_id = parseInt(document.getElementById('playlist-content-id').value);
+            const playlist_id = parseInt(document.getElementById('playlist-select').value);
 
-            if (!content_type || !content_id) return;
-
-            const screen_id = document.getElementById('playlist-screen-select').value || null;
-            const body = { content_type, content_id, screen_id: screen_id ? parseInt(screen_id) : null };
+            if (!content_type || !content_id || !playlist_id) return;
 
             try {
-                await api('/playlist', { method: 'POST', body });
+                await api('/playlist', { method: 'POST', body: { content_type, content_id, playlist_id } });
                 toast('Added to playlist!', 'success');
                 hideModal('playlist-add-modal');
                 document.getElementById('playlist-add-form').reset();
                 document.getElementById('playlist-content-id').innerHTML = '<option value="">Select type first...</option>';
-                loadPlaylist();
+                loadPlaylistItems();
             } catch (err) { toast(err.message, 'error'); }
         });
 
         async function togglePlaylistItem(id, active) {
             try {
                 await api(`/playlist/${id}`, { method: 'PUT', body: { active } });
-                loadPlaylist();
+                loadPlaylistItems();
             } catch (err) { toast(err.message, 'error'); }
         }
 
@@ -1558,7 +1594,7 @@
             try {
                 await api(`/playlist/${id}`, { method: 'DELETE' });
                 toast('Removed from playlist', 'success');
-                loadPlaylist();
+                loadPlaylistItems();
             } catch (err) { toast(err.message, 'error'); }
         }
 
@@ -1680,9 +1716,14 @@
         // --- Screens ---
         async function loadScreens() {
             try {
-                const screens = await api('/screens');
+                const [screens, playlists] = await Promise.all([api('/screens'), api('/playlist/lists')]);
                 const table = document.getElementById('screens-table');
                 const empty = document.getElementById('screens-empty');
+
+                // Populate playlist dropdown for new screen modal
+                const plSelect = document.getElementById('screen-playlist');
+                plSelect.innerHTML = '<option value="">None</option>' +
+                    playlists.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
 
                 if (screens.length === 0) {
                     table.innerHTML = '';
@@ -1691,12 +1732,17 @@
                 }
 
                 empty.style.display = 'none';
+                const getPlaylistName = (id) => {
+                    const pl = playlists.find(p => p.id === id);
+                    return pl ? pl.name : '<em>None</em>';
+                };
+
                 table.innerHTML = screens.map(s => `
                     <tr>
                         <td><strong>${escapeHtml(s.name)}</strong></td>
                         <td><a href="/display/${s.slug}" target="_blank">/display/${s.slug}</a></td>
-                        <td>${s.orientation}</td>
-                        <td>${s.rotation}°</td>
+                        <td>${getPlaylistName(s.playlist_id)}</td>
+                        <td>${s.orientation} / ${s.rotation}°</td>
                         <td><span class="badge ${s.active ? 'badge-green' : 'badge-gray'}">${s.active ? 'Active' : 'Inactive'}</span></td>
                         <td class="actions">
                             <button class="btn btn-secondary btn-sm" onclick="editScreen(${s.id})">Edit</button>
@@ -1717,15 +1763,16 @@
             const id = document.getElementById('screen-edit-id').value;
             const name = document.getElementById('screen-name').value;
             const slug = document.getElementById('screen-slug').value;
+            const playlist_id = parseInt(document.getElementById('screen-playlist').value) || null;
             const orientation = document.getElementById('screen-orientation').value;
             const rotation = document.getElementById('screen-rotation').value;
 
             try {
                 if (id) {
-                    await api(`/screens/${id}`, { method: 'PUT', body: { name, slug, orientation, rotation } });
+                    await api(`/screens/${id}`, { method: 'PUT', body: { name, slug, playlist_id, orientation, rotation } });
                     toast('Screen updated!', 'success');
                 } else {
-                    await api('/screens', { method: 'POST', body: { name, slug, orientation, rotation } });
+                    await api('/screens', { method: 'POST', body: { name, slug, playlist_id, orientation, rotation } });
                     toast('Screen created!', 'success');
                 }
                 hideModal('screen-modal');
@@ -1737,7 +1784,7 @@
 
         async function editScreen(id) {
             try {
-                const screens = await api('/screens');
+                const [screens, playlists] = await Promise.all([api('/screens'), api('/playlist/lists')]);
                 const screen = screens.find(s => s.id === id);
                 if (!screen) return;
 
@@ -1746,6 +1793,10 @@
                 document.getElementById('screen-name').value = screen.name;
                 document.getElementById('screen-slug').value = screen.slug;
                 document.getElementById('screen-slug-preview').textContent = screen.slug;
+                // Populate playlist dropdown
+                const plSelect = document.getElementById('screen-playlist');
+                plSelect.innerHTML = '<option value="">None</option>' +
+                    playlists.map(p => `<option value="${p.id}" ${p.id === screen.playlist_id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
                 document.getElementById('screen-orientation').value = screen.orientation;
                 document.getElementById('screen-rotation').value = screen.rotation;
                 showModal('screen-modal');

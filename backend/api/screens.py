@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/screens", tags=["screens"])
 class ScreenCreate(BaseModel):
     name: str
     slug: str  # URL-friendly: only lowercase letters, numbers, hyphens
+    playlist_id: int | None = None
     orientation: str = "horizontal"
     rotation: str = "0"
 
@@ -24,6 +25,7 @@ class ScreenCreate(BaseModel):
 class ScreenUpdate(BaseModel):
     name: str | None = None
     slug: str | None = None
+    playlist_id: int | None = None
     orientation: str | None = None
     rotation: str | None = None
     active: bool | None = None
@@ -33,6 +35,7 @@ class ScreenOut(BaseModel):
     id: int
     name: str
     slug: str
+    playlist_id: int | None
     orientation: str
     rotation: str
     active: bool
@@ -60,9 +63,6 @@ async def create_screen(
     if not re.match(r'^[a-z0-9][a-z0-9\-]*$', data.slug):
         raise HTTPException(status_code=400, detail="Slug must be lowercase letters, numbers, and hyphens only")
 
-    if data.slug == "main":
-        raise HTTPException(status_code=400, detail="'main' is reserved for the default screen")
-
     # Check slug is unique
     result = await db.execute(select(Screen).where(Screen.slug == data.slug))
     if result.scalar_one_or_none():
@@ -71,6 +71,7 @@ async def create_screen(
     screen = Screen(
         name=data.name,
         slug=data.slug,
+        playlist_id=data.playlist_id,
         orientation=data.orientation,
         rotation=data.rotation,
     )
@@ -97,13 +98,13 @@ async def update_screen(
     if data.slug is not None:
         if not re.match(r'^[a-z0-9][a-z0-9\-]*$', data.slug):
             raise HTTPException(status_code=400, detail="Slug must be lowercase letters, numbers, and hyphens only")
-        if data.slug == "main":
-            raise HTTPException(status_code=400, detail="'main' is reserved for the default screen")
         # Check uniqueness
         existing = await db.execute(select(Screen).where(Screen.slug == data.slug, Screen.id != screen_id))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="A screen with this slug already exists")
         screen.slug = data.slug
+    if data.playlist_id is not None:
+        screen.playlist_id = data.playlist_id
     if data.orientation is not None:
         screen.orientation = data.orientation
     if data.rotation is not None:

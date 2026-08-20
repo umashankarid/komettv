@@ -28,7 +28,7 @@ async def get_db():
 
 
 async def init_db():
-    """Run migrations, create tables, and seed default admin."""
+    """Run migrations, create tables, and seed defaults."""
 
     # Step 1: Run migrations (synchronous, before async engine touches the DB)
     run_migration_sync(settings.DATABASE_PATH)
@@ -37,10 +37,12 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Step 3: Seed default admin user if no admins exist
+    # Step 3: Seed defaults
     async with async_session() as session:
         from sqlalchemy import select, func
+        from backend.models.models import Playlist, Screen
 
+        # Seed default admin user if no admins exist
         result = await session.execute(select(func.count(Admin.id)))
         count = result.scalar()
 
@@ -50,4 +52,42 @@ async def init_db():
                 password_hash=pwd_context.hash(settings.ADMIN_PASSWORD),
             )
             session.add(default_admin)
-            await session.commit()
+
+        # Seed default playlist if none exists
+        result = await session.execute(select(func.count(Playlist.id)))
+        if result.scalar() == 0:
+            default_playlist = Playlist(name="Main Playlist")
+            session.add(default_playlist)
+            await session.flush()
+
+            # Seed default "main" screen
+            main_screen = Screen(
+                name="Main Screen",
+                slug="main",
+                playlist_id=default_playlist.id,
+                orientation="vertical",
+                rotation="90",
+            )
+            session.add(main_screen)
+
+        # Ensure "main" screen exists (for upgrades)
+        result = await session.execute(select(Screen).where(Screen.slug == "main"))
+        if not result.scalar_one_or_none():
+            # Get first playlist or create one
+            pl_result = await session.execute(select(Playlist).order_by(Playlist.id))
+            playlist = pl_result.scalars().first()
+            if not playlist:
+                playlist = Playlist(name="Main Playlist")
+                session.add(playlist)
+                await session.flush()
+
+            main_screen = Screen(
+                name="Main Screen",
+                slug="main",
+                playlist_id=playlist.id,
+                orientation="vertical",
+                rotation="90",
+            )
+            session.add(main_screen)
+
+        await session.commit()
