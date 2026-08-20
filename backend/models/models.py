@@ -104,6 +104,20 @@ class StoredFile(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
+class UploadLink(Base):
+    __tablename__ = "upload_links"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    token = Column(String(64), unique=True, nullable=False, index=True)
+    label = Column(String(200), nullable=False)  # Description e.g. "Tournament photos from Johan"
+    used = Column(Boolean, default=False)
+    file_count = Column(Integer, default=0)  # How many files were uploaded
+    created_by = Column(String(50), nullable=True)
+    expires_at = Column(DateTime, nullable=True)  # Optional expiry
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 class Folder(Base):
     __tablename__ = "folders"
 

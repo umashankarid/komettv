@@ -431,6 +431,7 @@
             <a href="#" data-section="announcements">📢 Announcements</a>
             <a href="#" data-section="playlist">📋 Playlist</a>
             <a href="#" data-section="screens">📺 Screens</a>
+            <a href="#" data-section="upload-links">🔗 Upload Links</a>
             <a href="#" data-section="storage">💾 Storage</a>
             <a href="#" data-section="settings">⚙️ Settings</a>
             <a href="#" data-section="admins">👤 Admins</a>
@@ -558,6 +559,30 @@
                         <tbody id="screens-table"></tbody>
                     </table>
                     <div id="screens-empty" class="empty-state" style="display:none;">No additional screens. The default screen (/display/main) is always available.</div>
+                </div>
+            </section>
+
+            <!-- Upload Links -->
+            <section id="section-upload-links" class="section-hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>🔗 Upload Links</h2>
+                    <button class="btn btn-primary" onclick="showModal('upload-link-modal')">+ Create Link</button>
+                </div>
+                <div class="card">
+                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:16px;">Create one-time links for others to upload photos. Share the link — they upload — link deactivates.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Label</th>
+                                <th>Status</th>
+                                <th>Photos</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="upload-links-table"></tbody>
+                    </table>
+                    <div id="upload-links-empty" class="empty-state" style="display:none;">No upload links created yet.</div>
                 </div>
             </section>
 
@@ -786,6 +811,36 @@
                     <button type="button" class="btn btn-secondary" onclick="hideModal('admin-modal')">Cancel</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="upload-link-modal">
+        <div class="modal">
+            <h2>Create Upload Link</h2>
+            <form id="upload-link-form">
+                <div class="form-group">
+                    <label>Label (who is this for?)</label>
+                    <input type="text" id="upload-link-label" required placeholder="e.g. Tournament photos from Johan">
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Create Link</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('upload-link-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="upload-link-share-modal">
+        <div class="modal">
+            <h2>Share Upload Link</h2>
+            <p style="margin-bottom:16px; color:var(--gray-500);">Send this link to the person. They can upload photos without logging in.</p>
+            <div class="form-group">
+                <input type="text" id="upload-link-url" readonly style="font-size:0.85rem; background:var(--gray-100);" onclick="this.select()">
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-primary" onclick="copyUploadLink()">Copy Link</button>
+                <button class="btn btn-secondary" onclick="hideModal('upload-link-share-modal')">Close</button>
+            </div>
         </div>
     </div>
 
@@ -1023,6 +1078,7 @@
                 case 'announcements': loadAnnouncements(); break;
                 case 'playlist': loadPlaylist(); break;
                 case 'screens': loadScreens(); break;
+                case 'upload-links': loadUploadLinks(); break;
                 case 'storage': loadStorage(); break;
                 case 'settings': loadSettings(); break;
                 case 'admins': loadAdmins(); break;
@@ -1546,6 +1602,78 @@
             try {
                 await api('/playlist/reorder', { method: 'POST', body: { item_ids } });
                 toast('Order saved!', 'success');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        // --- Upload Links ---
+        async function loadUploadLinks() {
+            try {
+                const links = await api('/upload-links');
+                const table = document.getElementById('upload-links-table');
+                const empty = document.getElementById('upload-links-empty');
+
+                if (links.length === 0) {
+                    table.innerHTML = '';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                table.innerHTML = links.map(l => `
+                    <tr>
+                        <td><strong>${escapeHtml(l.label)}</strong><br><span style="font-size:0.75rem;color:var(--gray-500);">by ${escapeHtml(l.created_by || '-')}</span></td>
+                        <td><span class="badge ${l.used ? 'badge-gray' : 'badge-green'}">${l.used ? 'Used' : 'Active'}</span></td>
+                        <td>${l.file_count}</td>
+                        <td>${formatDate(l.created_at)}</td>
+                        <td class="actions">
+                            ${!l.used ? `<button class="btn btn-secondary btn-sm" onclick="shareUploadLink('${l.token}')">Share</button>` : ''}
+                            <button class="btn btn-danger btn-sm" onclick="deleteUploadLink(${l.id})">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        document.getElementById('upload-link-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const label = document.getElementById('upload-link-label').value;
+
+            try {
+                const link = await api('/upload-links', { method: 'POST', body: { label } });
+                toast('Upload link created!', 'success');
+                hideModal('upload-link-modal');
+                document.getElementById('upload-link-form').reset();
+
+                // Show the share modal with the URL
+                shareUploadLink(link.token);
+                loadUploadLinks();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        function shareUploadLink(token) {
+            const url = `${window.location.origin}/upload/${token}`;
+            document.getElementById('upload-link-url').value = url;
+            showModal('upload-link-share-modal');
+        }
+
+        function copyUploadLink() {
+            const input = document.getElementById('upload-link-url');
+            input.select();
+            navigator.clipboard.writeText(input.value).then(() => {
+                toast('Link copied!', 'success');
+            }).catch(() => {
+                // Fallback
+                document.execCommand('copy');
+                toast('Link copied!', 'success');
+            });
+        }
+
+        async function deleteUploadLink(id) {
+            if (!confirm('Delete this upload link?')) return;
+            try {
+                await api(`/upload-links/${id}`, { method: 'DELETE' });
+                toast('Link deleted', 'success');
+                loadUploadLinks();
             } catch (err) { toast(err.message, 'error'); }
         }
 

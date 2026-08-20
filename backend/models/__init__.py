@@ -9,6 +9,7 @@ from backend.models.models import (
     DisplaySettings,
     Screen,
     StoredFile,
+    UploadLink,
     Folder,
     FolderItem,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "DisplaySettings",
     "Screen",
     "StoredFile",
+    "UploadLink",
     "Folder",
     "FolderItem",
 ]

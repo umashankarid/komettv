@@ -13,6 +13,7 @@ from backend.api.folders import router as folders_router
 from backend.api.settings import router as settings_router
 from backend.api.storage import router as storage_router
 from backend.api.screens import router as screens_router
+from backend.api.upload_links import router as upload_links_router
 
 
 @asynccontextmanager
@@ -46,12 +47,23 @@ app.include_router(folders_router)
 app.include_router(settings_router)
 app.include_router(storage_router)
 app.include_router(screens_router)
+app.include_router(upload_links_router)
 
 
 # Serve TV player at /display/main and /display/{slug}
 @app.get("/display/{slug}")
 async def serve_player(slug: str):
     response = FileResponse("player/main.html", media_type="text/html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+# Serve public upload page
+@app.get("/upload/{token}")
+async def serve_upload_page(token: str):
+    response = FileResponse("player/upload.html", media_type="text/html")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"

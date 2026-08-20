@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Photos - BMK Komet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        .logo { font-size: 2.5rem; margin-bottom: 8px; }
+        h1 { font-size: 1.5rem; margin-bottom: 8px; color: #111; }
+        .label { color: #059669; font-weight: 600; font-size: 1.1rem; margin-bottom: 24px; }
+        .message { color: #6b7280; font-size: 0.95rem; margin-bottom: 24px; }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 40px 20px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #059669;
+            background: #f0fdf4;
+        }
+        .upload-area p { color: #6b7280; }
+        .upload-area .icon { font-size: 2rem; margin-bottom: 8px; }
+
+        input[type="file"] { display: none; }
+
+        .file-list {
+            text-align: left;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        .file-item .status { font-size: 0.8rem; }
+        .file-item .status.success { color: #16a34a; }
+        .file-item .status.error { color: #dc2626; }
+        .file-item .status.uploading { color: #2563eb; }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .btn-primary { background: #059669; color: #fff; }
+        .btn-primary:hover { background: #047857; }
+        .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-secondary:hover { background: #d1d5db; }
+        .btn-done { background: #2563eb; color: #fff; }
+        .btn-done:hover { background: #1d4ed8; }
+
+        .counter { color: #059669; font-weight: 700; font-size: 1.2rem; margin-bottom: 16px; }
+
+        .invalid {
+            color: #dc2626;
+            font-size: 1.1rem;
+            padding: 40px 0;
+        }
+        .invalid .icon { font-size: 3rem; margin-bottom: 12px; }
+
+        .done-state { color: #16a34a; }
+        .done-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <div class="logo">🏸</div>
+        <h1>BMK Komet</h1>
+        <p class="message" id="loading-msg">Checking link...</p>
+    </div>
+
+    <script>
+        const token = window.location.pathname.split('/upload/')[1];
+        const app = document.getElementById('app');
+
+        let uploadedCount = 0;
+        let isUploading = false;
+
+        async function init() {
+            if (!token) {
+                showInvalid('Invalid link.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/upload-links/status/${token}`);
+                const data = await res.json();
+
+                if (!data.valid) {
+                    showInvalid(data.message);
+                    return;
+                }
+
+                showUploadForm(data.label);
+            } catch (err) {
+                showInvalid('Could not verify link. Try again later.');
+            }
+        }
+
+        function showInvalid(message) {
+            app.innerHTML = `
+                <div class="logo">🏸</div>
+                <h1>BMK Komet</h1>
+                <div class="invalid">
+                    <div class="icon">⚠️</div>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function showUploadForm(label) {
+            app.innerHTML = `
+                <div class="logo">🏸</div>
+                <h1>Upload Photos</h1>
+                <p class="label">${escapeHtml(label)}</p>
+                <div class="upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
+                    <div class="icon">📷</div>
+                    <p>Tap to select photos or drag & drop</p>
+                    <p style="font-size:0.8rem; margin-top:8px; color:#9ca3af;">JPG, PNG, WEBP</p>
+                </div>
+                <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp" multiple>
+                <div class="file-list" id="file-list"></div>
+                <div class="counter" id="counter" style="display:none;"></div>
+                <button class="btn btn-done" id="done-btn" style="display:none;" onclick="markDone()">✓ Done Uploading</button>
+            `;
+
+            const fileInput = document.getElementById('file-input');
+            const dropArea = document.getElementById('drop-area');
+
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+                fileInput.value = '';
+            });
+
+            // Drag and drop
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('dragover');
+            });
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.classList.remove('dragover');
+            });
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+        }
+
+        async function handleFiles(files) {
+            if (isUploading) return;
+
+            const fileList = document.getElementById('file-list');
+            const validFiles = Array.from(files).filter(f => {
+                const ext = f.name.split('.').pop().toLowerCase();
+                return ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+            });
+
+            if (validFiles.length === 0) return;
+
+            isUploading = true;
+
+            for (const file of validFiles) {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `<span>${escapeHtml(file.name)}</span><span class="status uploading">Uploading...</span>`;
+                fileList.appendChild(item);
+                fileList.scrollTop = fileList.scrollHeight;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const res = await fetch(`/api/upload-links/upload/${token}`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (res.status === 410) {
+                        item.querySelector('.status').textContent = 'Link expired';
+                        item.querySelector('.status').className = 'status error';
+                        showInvalid('This link has already been used.');
+                        return;
+                    }
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.detail || 'Upload failed');
+                    }
+
+                    uploadedCount++;
+                    item.querySelector('.status').textContent = '✓ Done';
+                    item.querySelector('.status').className = 'status success';
+                } catch (err) {
+                    item.querySelector('.status').textContent = err.message;
+                    item.querySelector('.status').className = 'status error';
+                }
+            }
+
+            isUploading = false;
+            updateCounter();
+        }
+
+        function updateCounter() {
+            const counter = document.getElementById('counter');
+            const doneBtn = document.getElementById('done-btn');
+            if (uploadedCount > 0) {
+                counter.style.display = 'block';
+                counter.textContent = `${uploadedCount} photo${uploadedCount > 1 ? 's' : ''} uploaded`;
+                doneBtn.style.display = 'block';
+            }
+        }
+
+        async function markDone() {
+            try {
+                const res = await fetch(`/api/upload-links/done/${token}`, { method: 'POST' });
+                const data = await res.json();
+
+                app.innerHTML = `
+                    <div class="logo">🏸</div>
+                    <h1>BMK Komet</h1>
+                    <div class="done-state">
+                        <div class="icon">✅</div>
+                        <p style="font-size:1.2rem; font-weight:600;">Thank you!</p>
+                        <p style="margin-top:8px; color:#6b7280;">${data.file_count} photo${data.file_count > 1 ? 's' : ''} uploaded successfully.</p>
+                        <p style="margin-top:16px; font-size:0.85rem; color:#9ca3af;">This link is now deactivated.</p>
+                    </div>
+                `;
+            } catch (err) {
+                alert('Error marking as done');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        init();
+    </script>
+</body>
+</html>
