@@ -1469,7 +1469,12 @@
                     if (selectedPl.music_filename) {
                         musicInfo.innerHTML = `🎵 ${escapeHtml(selectedPl.music_filename)} <button class="btn btn-danger btn-sm" onclick="removePlaylistMusic()">Remove</button>`;
                     } else {
-                        musicInfo.innerHTML = `<label class="btn btn-secondary btn-sm" style="cursor:pointer;">🎵 Add Music <input type="file" accept=".mp3" style="display:none;" onchange="uploadPlaylistMusic(this.files[0])"></label>`;
+                        musicInfo.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="document.getElementById('playlist-music-input').click()">🎵 Add Music</button><input type="file" id="playlist-music-input" accept=".mp3" style="display:none;">`;
+                        // Attach event after DOM update
+                        setTimeout(() => {
+                            const input = document.getElementById('playlist-music-input');
+                            if (input) input.addEventListener('change', (e) => { if (e.target.files[0]) uploadPlaylistMusic(e.target.files[0]); });
+                        }, 0);
                     }
                 }
 
