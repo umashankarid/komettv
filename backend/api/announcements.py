@@ -129,5 +129,16 @@ async def delete_announcement(
     if not announcement:
         raise HTTPException(status_code=404, detail="Announcement not found")
 
+    # Remove from all playlists
+    from backend.models.models import PlaylistItem, ContentType
+    playlist_items = await db.execute(
+        select(PlaylistItem).where(
+            PlaylistItem.content_type == ContentType.ANNOUNCEMENT,
+            PlaylistItem.content_id == announcement_id,
+        )
+    )
+    for pi in playlist_items.scalars().all():
+        await db.delete(pi)
+
     await db.delete(announcement)
     return {"message": "Announcement deleted"}

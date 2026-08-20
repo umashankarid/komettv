@@ -133,5 +133,17 @@ async def delete_media(
         if os.path.exists(thumb_path):
             os.remove(thumb_path)
 
+    # Remove from all playlists
+    from backend.models.models import PlaylistItem, ContentType
+    content_type = ContentType.IMAGE if media_item.media_type == MediaType.IMAGE else ContentType.VIDEO
+    playlist_items = await db.execute(
+        select(PlaylistItem).where(
+            PlaylistItem.content_type == content_type,
+            PlaylistItem.content_id == media_id,
+        )
+    )
+    for pi in playlist_items.scalars().all():
+        await db.delete(pi)
+
     await db.delete(media_item)
     return {"message": "Media deleted"}
