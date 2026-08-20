@@ -131,6 +131,46 @@ async def delete_playlist(
     return {"message": f"Playlist '{pl.name}' deleted"}
 
 
+class PlaylistMusicSet(BaseModel):
+    media_id: int | None = None  # null = remove music
+
+
+@router.put("/lists/{playlist_id}/music")
+async def set_playlist_music(
+    playlist_id: int,
+    data: PlaylistMusicSet,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    """Set or remove background music for a playlist from the media library."""
+    result = await db.execute(select(Playlist).where(Playlist.id == playlist_id))
+    pl = result.scalar_one_or_none()
+    if not pl:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    if data.media_id is None:
+        # Remove music
+        pl.music_path = None
+        pl.music_filename = None
+        db.add(pl)
+        return {"message": "Music removed"}
+
+    # Set music from media library
+    from backend.models.models import MediaType as MT
+    media_result = await db.execute(select(Media).where(Media.id == data.media_id))
+    media = media_result.scalar_one_or_none()
+    if not media:
+        raise HTTPException(status_code=404, detail="Media not found")
+    if media.media_type != MT.AUDIO:
+        raise HTTPException(status_code=400, detail="Selected media is not an audio file")
+
+    pl.music_path = media.file_path
+    pl.music_filename = media.original_filename
+    db.add(pl)
+
+    return {"message": "Music set", "filename": media.original_filename, "path": media.file_path}
+
+
 @router.post("/lists/{playlist_id}/music")
 async def upload_playlist_music(
     playlist_id: int,
@@ -138,7 +178,7 @@ async def upload_playlist_music(
     db: AsyncSession = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin),
 ):
-    """Upload background music for a playlist."""
+    """Upload background music directly for a playlist (legacy, still supported)."""
     import os, uuid
     result = await db.execute(select(Playlist).where(Playlist.id == playlist_id))
     pl = result.scalar_one_or_none()
@@ -153,16 +193,10 @@ async def upload_playlist_music(
         raise HTTPException(status_code=400, detail="Only MP3 files allowed")
 
     content = await file.read()
-    if len(content) > 50 * 1024 * 1024:  # 50MB max for music
+    if len(content) > 50 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Max: 50MB")
 
-    # Delete old music if exists
-    if pl.music_path:
-        old_path = os.path.join(settings.MEDIA_PATH, pl.music_path.replace("/media/", ""))
-        if os.path.exists(old_path):
-            os.remove(old_path)
-
-    # Save new music
+    # Save file
     unique_filename = f"{uuid.uuid4().hex}{ext}"
     save_dir = os.path.join(settings.MEDIA_PATH, "music")
     os.makedirs(save_dir, exist_ok=True)
@@ -185,19 +219,14 @@ async def remove_playlist_music(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """Remove background music from a playlist."""
-    import os
     result = await db.execute(select(Playlist).where(Playlist.id == playlist_id))
     pl = result.scalar_one_or_none()
     if not pl:
         raise HTTPException(status_code=404, detail="Playlist not found")
 
-    if pl.music_path:
-        full_path = os.path.join(settings.MEDIA_PATH, pl.music_path.replace("/media/", ""))
-        if os.path.exists(full_path):
-            os.remove(full_path)
-        pl.music_filename = None
-        pl.music_path = None
-        db.add(pl)
+    pl.music_filename = None
+    pl.music_path = None
+    db.add(pl)
 
     return {"message": "Music removed"}
 

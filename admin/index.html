@@ -465,6 +465,7 @@
                             <option value="">All</option>
                             <option value="image">Images</option>
                             <option value="video">Videos</option>
+                            <option value="audio">Audio</option>
                         </select>
                     </div>
                     <table>
@@ -688,8 +689,8 @@
             <h2>Upload Media</h2>
             <form id="upload-form">
                 <div class="form-group">
-                    <label>Choose file (JPG, PNG, WEBP, MP4)</label>
-                    <input type="file" id="upload-file" accept=".jpg,.jpeg,.png,.webp,.mp4" required>
+                    <label>Choose file (JPG, PNG, WEBP, MP4, MP3)</label>
+                    <input type="file" id="upload-file" accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3" required>
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button type="submit" class="btn btn-primary">Upload</button>
@@ -1165,7 +1166,7 @@
                     <tr>
                         <td>${m.thumbnail_path ? `<img class="thumbnail" src="${m.thumbnail_path}">` : `<div class="thumbnail" style="display:flex;align-items:center;justify-content:center;">🎬</div>`}</td>
                         <td>${escapeHtml(m.original_filename)}</td>
-                        <td><span class="badge ${m.media_type === 'image' ? 'badge-blue' : 'badge-green'}">${m.media_type === 'image' ? 'Image' : 'Video'}</span></td>
+                        <td><span class="badge ${m.media_type === 'image' ? 'badge-blue' : m.media_type === 'audio' ? 'badge-green' : 'badge-green'}">${m.media_type === 'image' ? 'Image' : m.media_type === 'audio' ? 'Audio' : 'Video'}</span></td>
                         <td>${formatSize(m.file_size)}</td>
                         <td>${formatDate(m.created_at)}</td>
                         <td class="actions">
@@ -1471,12 +1472,20 @@
                     if (selectedPl.music_filename) {
                         musicInfo.innerHTML = `🎵 ${escapeHtml(selectedPl.music_filename)} <button class="btn btn-danger btn-sm" onclick="removePlaylistMusic()">Remove</button>`;
                     } else {
-                        musicInfo.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="document.getElementById('playlist-music-input').click()">🎵 Add Music</button><input type="file" id="playlist-music-input" accept=".mp3" style="display:none;">`;
-                        // Attach event after DOM update
-                        setTimeout(() => {
-                            const input = document.getElementById('playlist-music-input');
-                            if (input) input.addEventListener('change', (e) => { if (e.target.files[0]) uploadPlaylistMusic(e.target.files[0]); });
-                        }, 0);
+                        // Load audio files from media library
+                        try {
+                            const audioFiles = await api('/media?media_type=audio');
+                            if (audioFiles.length > 0) {
+                                musicInfo.innerHTML = `<select id="playlist-music-select" style="padding:4px 8px; border:1px solid var(--gray-300); border-radius:4px; font-size:0.85rem;">
+                                    <option value="">Select music...</option>
+                                    ${audioFiles.map(a => `<option value="${a.id}">${escapeHtml(a.original_filename)}</option>`).join('')}
+                                </select> <button class="btn btn-secondary btn-sm" onclick="setPlaylistMusicFromMedia()">🎵 Set Music</button>`;
+                            } else {
+                                musicInfo.innerHTML = `<span style="font-size:0.85rem; color:var(--gray-500);">Upload MP3 in Media first</span>`;
+                            }
+                        } catch(e) {
+                            musicInfo.innerHTML = '';
+                        }
                     }
                 }
 
@@ -1526,17 +1535,17 @@
             } catch (err) { toast(err.message, 'error'); }
         }
 
-        async function uploadPlaylistMusic(file) {
-            if (!file) return;
+        async function setPlaylistMusicFromMedia() {
             const playlistId = document.getElementById('playlist-select').value;
-            if (!playlistId) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
+            const mediaId = document.getElementById('playlist-music-select').value;
+            if (!playlistId || !mediaId) {
+                toast('Select a music file first', 'error');
+                return;
+            }
 
             try {
-                await api(`/playlist/lists/${playlistId}/music`, { method: 'POST', body: formData });
-                toast('Music uploaded! Will loop during all slides.', 'success');
+                await api(`/playlist/lists/${playlistId}/music`, { method: 'PUT', body: { media_id: parseInt(mediaId) } });
+                toast('Music set! Will loop during all slides.', 'success');
                 loadPlaylist();
             } catch (err) { toast(err.message, 'error'); }
         }
@@ -1548,7 +1557,7 @@
                 return;
             }
             try {
-                await api(`/playlist/lists/${playlistId}/music`, { method: 'DELETE' });
+                await api(`/playlist/lists/${playlistId}/music`, { method: 'PUT', body: { media_id: null } });
                 toast('Music removed', 'success');
                 loadPlaylist();
             } catch (err) { toast(err.message, 'error'); }

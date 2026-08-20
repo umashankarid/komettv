@@ -11,6 +11,7 @@ class Base(DeclarativeBase):
 class MediaType(str, enum.Enum):
     IMAGE = "image"
     VIDEO = "video"
+    AUDIO = "audio"
 
 
 class ContentType(str, enum.Enum):

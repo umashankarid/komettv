@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/media", tags=["media"])
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_VIDEO_EXTENSIONS = {".mp4"}
+ALLOWED_AUDIO_EXTENSIONS = {".mp3"}
 
 
 # --- Schemas ---
@@ -68,10 +69,14 @@ async def upload_media(
         media_type = MediaType.VIDEO
         max_size = settings.MAX_VIDEO_SIZE
         subfolder = "videos"
+    elif ext in ALLOWED_AUDIO_EXTENSIONS:
+        media_type = MediaType.AUDIO
+        max_size = settings.MAX_VIDEO_SIZE  # 200MB limit for audio too
+        subfolder = "music"
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"File type not allowed. Allowed: {ALLOWED_IMAGE_EXTENSIONS | ALLOWED_VIDEO_EXTENSIONS}",
+            detail=f"File type not allowed. Allowed: {ALLOWED_IMAGE_EXTENSIONS | ALLOWED_VIDEO_EXTENSIONS | ALLOWED_AUDIO_EXTENSIONS}",
         )
 
     # Read file content
