@@ -144,6 +144,14 @@
         </div>
         <div id="clock"></div>
     </div>
+    <!-- Audio unlock overlay - browsers require user interaction before playing audio -->
+    <div id="audio-unlock" style="position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center; cursor:pointer;" onclick="unlockAudio()">
+        <div style="text-align:center; color:#fff;">
+            <p style="font-size:3rem;">🏸</p>
+            <p style="font-size:1.5rem; margin-top:16px;">Tap to start Komet TV</p>
+            <p style="font-size:0.9rem; margin-top:8px; opacity:0.6;">Audio requires interaction to play</p>
+        </div>
+    </div>
 
     <script>
         const PLAYER = document.getElementById('player');
@@ -254,6 +262,27 @@
             }
         }
 
+        // --- Audio Unlock ---
+        let audioUnlocked = false;
+
+        function unlockAudio() {
+            audioUnlocked = true;
+            document.getElementById('audio-unlock').style.display = 'none';
+            // Retry playing music after unlock
+            if (playlistMusicUrl) {
+                handlePlaylistMusic(playlistMusicUrl);
+            }
+            if (bgMusic && bgMusic.paused) {
+                bgMusic.play().catch(() => {});
+            }
+        }
+
+        function showAudioUnlock() {
+            if (!audioUnlocked) {
+                document.getElementById('audio-unlock').style.display = 'flex';
+            }
+        }
+
         // --- Background Music ---
         function handlePlaylistMusic(musicUrl) {
             if (!musicUrl) {
@@ -267,10 +296,12 @@
                 return;
             }
 
-            if (playlistMusicUrl === musicUrl) {
+            playlistMusicUrl = musicUrl;
+
+            if (playlistMusic && playlistMusic.src && playlistMusic.src.includes(musicUrl.split('/').pop())) {
                 // Same music, ensure it's playing
-                if (playlistMusic && playlistMusic.paused) {
-                    playlistMusic.play().catch(() => {});
+                if (playlistMusic.paused) {
+                    playlistMusic.play().catch(() => showAudioUnlock());
                 }
                 return;
             }
@@ -283,8 +314,12 @@
             playlistMusic = new Audio(musicUrl);
             playlistMusic.loop = true;
             playlistMusic.volume = 0.7;
-            playlistMusic.play().catch(() => {});
-            playlistMusicUrl = musicUrl;
+            playlistMusic.play().then(() => {
+                audioUnlocked = true;
+                document.getElementById('audio-unlock').style.display = 'none';
+            }).catch(() => {
+                showAudioUnlock();
+            });
         }
 
         function handleMusic(item) {
