@@ -27,6 +27,7 @@ class PlaylistOut(BaseModel):
     name: str
     music_filename: str | None
     music_path: str | None
+    audio_mode: str
     item_count: int
     created_at: datetime
 
@@ -70,6 +71,7 @@ class PlaylistVersion(BaseModel):
     version: str
     refresh_seconds: int
     music_url: str | None = None
+    audio_mode: str = "video"
 
 
 # --- Playlist CRUD ---
@@ -92,6 +94,7 @@ async def list_playlists(
             name=pl.name,
             music_filename=pl.music_filename,
             music_path=pl.music_path,
+            audio_mode=pl.audio_mode or "video",
             item_count=count_result.scalar() or 0,
             created_at=pl.created_at,
         ))
@@ -108,7 +111,7 @@ async def create_playlist(
     db.add(pl)
     await db.flush()
     await db.refresh(pl)
-    return PlaylistOut(id=pl.id, name=pl.name, music_filename=pl.music_filename, music_path=pl.music_path, item_count=0, created_at=pl.created_at)
+    return PlaylistOut(id=pl.id, name=pl.name, music_filename=pl.music_filename, music_path=pl.music_path, audio_mode=pl.audio_mode or "video", item_count=0, created_at=pl.created_at)
 
 
 @router.delete("/lists/{playlist_id}")
@@ -169,6 +172,31 @@ async def set_playlist_music(
     db.add(pl)
 
     return {"message": "Music set", "filename": media.original_filename, "path": media.file_path}
+
+
+class AudioModeUpdate(BaseModel):
+    audio_mode: str  # "music" or "video"
+
+
+@router.put("/lists/{playlist_id}/audio-mode")
+async def set_audio_mode(
+    playlist_id: int,
+    data: AudioModeUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    """Set audio mode: 'music' = playlist music loops over all, 'video' = videos play their own audio."""
+    if data.audio_mode not in ("music", "video"):
+        raise HTTPException(status_code=400, detail="audio_mode must be 'music' or 'video'")
+
+    result = await db.execute(select(Playlist).where(Playlist.id == playlist_id))
+    pl = result.scalar_one_or_none()
+    if not pl:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    pl.audio_mode = data.audio_mode
+    db.add(pl)
+    return {"message": f"Audio mode set to '{data.audio_mode}'"}
 
 
 @router.post("/lists/{playlist_id}/music")
@@ -431,6 +459,7 @@ async def get_playlist_version(
         version=version_hash,
         refresh_seconds=settings.PLAYLIST_REFRESH_SECONDS,
         music_url=playlist_obj.music_path if playlist_obj else None,
+        audio_mode=playlist_obj.audio_mode if playlist_obj else "video",
     )
 
 

@@ -176,6 +176,7 @@
         let currentMusicUrl = null;
         let playlistMusic = null;  // Playlist-level background music (plays during all slides)
         let playlistMusicUrl = null;
+        let currentAudioMode = 'video';  // 'music' or 'video'
 
         // --- Clock ---
         function updateClock() {
@@ -238,8 +239,14 @@
 
             refreshInterval = versionData.refresh_seconds;
 
-            // Handle playlist-level music
-            handlePlaylistMusic(versionData.music_url);
+            // Handle playlist-level music based on audio_mode
+            const audioMode = versionData.audio_mode || 'video';
+            currentAudioMode = audioMode;
+            if (audioMode === 'music' && versionData.music_url) {
+                handlePlaylistMusic(versionData.music_url);
+            } else {
+                handlePlaylistMusic(null); // Stop playlist music if mode is "video"
+            }
 
             if (versionData.version !== playlistVersion) {
                 const newPlaylist = await fetchPlaylist();
@@ -323,11 +330,9 @@
         }
 
         function handleMusic(item) {
-            // If playlist-level music is active, it plays during everything (including videos)
-            // Only handle folder-specific music if no playlist music
-            if (playlistMusic && playlistMusicUrl) {
-                // Playlist music is playing — don't stop it for videos
-                // Mute video audio so it doesn't clash with playlist music
+            // If playlist-level music is active (audio_mode = "music"), it plays during everything
+            if (playlistMusic && playlistMusicUrl && currentAudioMode === 'music') {
+                // Playlist music is playing — mute video audio
                 if (item.content_type === 'video' && currentSlide) {
                     const video = currentSlide.querySelector('video');
                     if (video) video.muted = true;
@@ -335,7 +340,8 @@
                 return;
             }
 
-            // Folder-specific music behavior (pause during videos)
+            // audio_mode = "video": let videos play their own audio
+            // Handle folder-specific music (pause during videos so video audio plays)
             if (item.content_type === 'video') {
                 if (bgMusic && !bgMusic.paused) {
                     bgMusic.pause();
@@ -386,15 +392,36 @@
                     const video = document.createElement('video');
                     video.autoplay = true;
                     video.playsInline = true;
-                    video.muted = false;
+                    video.muted = (currentAudioMode === 'music' && playlistMusic);
                     video.preload = 'auto';
+                    video.setAttribute('webkit-playsinline', '');
+                    video.setAttribute('x5-playsinline', '');
+                    // Force compatible playback for Instagram/social media videos
+                    video.style.width = '100%';
+                    video.style.height = '100%';
+                    video.style.objectFit = 'contain';
                     // Explicitly reset and load to prevent WebView freezing
                     video.pause();
                     video.removeAttribute('src');
                     video.load();
-                    video.src = item.data.url + cacheBust;
+                    // Use source element for better codec negotiation
+                    const source = document.createElement('source');
+                    source.src = item.data.url + cacheBust;
+                    source.type = 'video/mp4';
+                    video.appendChild(source);
                     video.load();
-                    video.play().catch(() => {});
+                    // Play with fallback - if it fails, try muted (autoplay policy)
+                    video.play().catch(() => {
+                        video.muted = true;
+                        video.play().catch(() => {});
+                    });
+                    // If video doesn't start within 3 seconds, skip
+                    setTimeout(() => {
+                        if (video.readyState < 2 && video.paused) {
+                            console.log('Video failed to load, skipping');
+                            advanceSlide();
+                        }
+                    }, 3000);
                     slide.appendChild(video);
                     break;
 
@@ -477,18 +504,25 @@
                     video.addEventListener('error', () => {
                         advanceTimeout = setTimeout(advanceSlide, 3000);
                     }, { once: true });
+                    // Also handle stalled event (common with Instagram videos)
+                    video.addEventListener('stalled', () => {
+                        console.log('Video stalled');
+                    }, { once: true });
 
-                    // Watchdog: if video is stuck for 20 seconds, skip it
+                    // Watchdog: if video is stuck for 15 seconds, skip it
                     let lastTime = -1;
                     let stuckCount = 0;
                     videoWatchdog = setInterval(() => {
                         if (!video.paused && video.currentTime === lastTime) {
                             stuckCount++;
+                        } else if (video.paused && video.readyState < 3) {
+                            // Video is paused and not ready - also stuck
+                            stuckCount++;
                         } else {
                             stuckCount = 0;
                         }
                         lastTime = video.currentTime;
-                        if (stuckCount >= 4) { // 4 * 5s = 20 seconds stuck
+                        if (stuckCount >= 3) { // 3 * 5s = 15 seconds stuck
                             clearInterval(videoWatchdog);
                             videoWatchdog = null;
                             video.pause();

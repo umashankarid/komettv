@@ -530,7 +530,9 @@
                 </div>
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <p style="font-size:0.85rem; color:var(--gray-500);">Drag and drop to reorder. Changes appear on the TV within 30 seconds.</p>
+                        <div>
+                            <span id="playlist-audio-toggle" style="cursor:pointer; font-size:0.9rem;"></span>
+                        </div>
                         <div id="playlist-music-info" style="font-size:0.85rem;"></div>
                     </div>
                     <div id="playlist-items"></div>
@@ -689,11 +691,14 @@
             <h2>Upload Media</h2>
             <form id="upload-form">
                 <div class="form-group">
-                    <label>Choose file (JPG, PNG, WEBP, MP4, MP3)</label>
-                    <input type="file" id="upload-file" accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3" required>
+                    <label>Choose files (JPG, PNG, WEBP, MP4, MP3)</label>
+                    <input type="file" id="upload-file" accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3" multiple required>
+                </div>
+                <div id="upload-progress" style="display:none; margin-bottom:12px;">
+                    <div style="font-size:0.85rem; color:var(--gray-500);" id="upload-progress-text"></div>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="submit" class="btn btn-primary">Upload</button>
+                    <button type="submit" class="btn btn-primary" id="upload-btn">Upload</button>
                     <button type="button" class="btn btn-secondary" onclick="hideModal('upload-modal')">Cancel</button>
                 </div>
             </form>
@@ -1183,21 +1188,39 @@
         document.getElementById('upload-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById('upload-file');
-            const file = fileInput.files[0];
-            if (!file) return;
+            const files = fileInput.files;
+            if (!files.length) return;
 
-            const formData = new FormData();
-            formData.append('file', file);
+            const progressDiv = document.getElementById('upload-progress');
+            const progressText = document.getElementById('upload-progress-text');
+            const uploadBtn = document.getElementById('upload-btn');
+            progressDiv.style.display = 'block';
+            uploadBtn.disabled = true;
 
-            try {
-                await api('/media', { method: 'POST', body: formData });
-                toast('Media uploaded!', 'success');
-                hideModal('upload-modal');
-                fileInput.value = '';
-                loadMedia();
-            } catch (err) {
-                toast(err.message, 'error');
+            let uploaded = 0, errors = 0;
+            for (let i = 0; i < files.length; i++) {
+                progressText.textContent = `Uploading ${i + 1} of ${files.length}...`;
+                const formData = new FormData();
+                formData.append('file', files[i]);
+                try {
+                    await api('/media', { method: 'POST', body: formData });
+                    uploaded++;
+                } catch (err) {
+                    errors++;
+                }
             }
+
+            progressDiv.style.display = 'none';
+            uploadBtn.disabled = false;
+            hideModal('upload-modal');
+            fileInput.value = '';
+
+            if (errors > 0) {
+                toast(`Uploaded ${uploaded}, ${errors} failed`, 'error');
+            } else {
+                toast(`${uploaded} file${uploaded > 1 ? 's' : ''} uploaded!`, 'success');
+            }
+            loadMedia();
         });
 
         async function deleteMedia(id) {
@@ -1468,7 +1491,11 @@
                 // Show music info for selected playlist
                 const selectedPl = playlists.find(p => p.id == select.value);
                 const musicInfo = document.getElementById('playlist-music-info');
+                const audioToggle = document.getElementById('playlist-audio-toggle');
                 if (selectedPl) {
+                    const mode = selectedPl.audio_mode || 'video';
+                    audioToggle.innerHTML = `Audio: <button class="btn btn-sm ${mode === 'music' ? 'btn-primary' : 'btn-secondary'}" onclick="setAudioMode('music')">🎵 Background Music</button> <button class="btn btn-sm ${mode === 'video' ? 'btn-primary' : 'btn-secondary'}" onclick="setAudioMode('video')">🎬 Video Audio</button>`;
+
                     if (selectedPl.music_filename) {
                         musicInfo.innerHTML = `🎵 ${escapeHtml(selectedPl.music_filename)} <button class="btn btn-danger btn-sm" onclick="removePlaylistMusic()">Remove</button>`;
                     } else {
@@ -1532,6 +1559,16 @@
                 `).join('');
 
                 initDragAndDrop();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        async function setAudioMode(mode) {
+            const playlistId = document.getElementById('playlist-select').value;
+            if (!playlistId) return;
+            try {
+                await api(`/playlist/lists/${playlistId}/audio-mode`, { method: 'PUT', body: { audio_mode: mode } });
+                toast(`Audio mode: ${mode === 'music' ? 'Background music loops over all' : 'Videos play their own audio'}`, 'success');
+                loadPlaylist();
             } catch (err) { toast(err.message, 'error'); }
         }
 
