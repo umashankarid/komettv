@@ -235,35 +235,48 @@
 
         async function checkForUpdates() {
             const versionData = await fetchVersion();
-            if (!versionData) return;
 
-            refreshInterval = versionData.refresh_seconds;
+            if (versionData) {
+                refreshInterval = versionData.refresh_seconds;
 
-            // Handle playlist-level music based on audio_mode
-            const audioMode = versionData.audio_mode || 'video';
-            currentAudioMode = audioMode;
-            if (audioMode === 'music' && versionData.music_url) {
-                handlePlaylistMusic(versionData.music_url);
-            } else {
-                handlePlaylistMusic(null); // Stop playlist music if mode is "video"
-            }
+                // Handle playlist-level music based on audio_mode
+                const audioMode = versionData.audio_mode || 'video';
+                currentAudioMode = audioMode;
+                if (audioMode === 'music' && versionData.music_url) {
+                    handlePlaylistMusic(versionData.music_url);
+                } else {
+                    handlePlaylistMusic(null);
+                }
 
-            if (versionData.version !== playlistVersion) {
-                const newPlaylist = await fetchPlaylist();
-                if (newPlaylist) {
-                    playlistVersion = versionData.version;
-                    playlist = newPlaylist;
-                    expandedPlaylist = expandPlaylist(playlist);
+                if (versionData.version !== playlistVersion) {
+                    const newPlaylist = await fetchPlaylist();
+                    if (newPlaylist) {
+                        playlistVersion = versionData.version;
+                        playlist = newPlaylist;
+                        expandedPlaylist = expandPlaylist(playlist);
 
-                    if (expandedPlaylist.length > 0) {
-                        STATUS.classList.add('hidden');
-                        if (currentIndex === -1) {
-                            currentIndex = 0;
-                            showSlide(currentIndex);
+                        if (expandedPlaylist.length > 0) {
+                            STATUS.classList.add('hidden');
+                            if (currentIndex === -1) {
+                                currentIndex = 0;
+                                showSlide(currentIndex);
+                            }
+                        } else {
+                            STATUS.classList.remove('hidden');
+                            STATUS.innerHTML = '<p>🏸 Komet TV</p><p style="font-size: 1.2rem; margin-top: 10px; opacity: 0.6;">No playlist content</p>';
                         }
-                    } else {
-                        STATUS.classList.remove('hidden');
-                        STATUS.innerHTML = '<p>🏸 Komet TV</p><p style="font-size: 1.2rem; margin-top: 10px; opacity: 0.6;">No playlist content</p>';
+                    }
+                }
+            } else {
+                // Version endpoint failed - try loading playlist directly
+                if (currentIndex === -1) {
+                    const newPlaylist = await fetchPlaylist();
+                    if (newPlaylist && newPlaylist.length > 0) {
+                        playlist = newPlaylist;
+                        expandedPlaylist = expandPlaylist(playlist);
+                        STATUS.classList.add('hidden');
+                        currentIndex = 0;
+                        showSlide(currentIndex);
                     }
                 }
             }

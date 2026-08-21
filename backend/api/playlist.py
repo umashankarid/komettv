@@ -94,7 +94,7 @@ async def list_playlists(
             name=pl.name,
             music_filename=pl.music_filename,
             music_path=pl.music_path,
-            audio_mode=pl.audio_mode or "video",
+            audio_mode=getattr(pl, 'audio_mode', 'video') or "video",
             item_count=count_result.scalar() or 0,
             created_at=pl.created_at,
         ))
@@ -111,7 +111,7 @@ async def create_playlist(
     db.add(pl)
     await db.flush()
     await db.refresh(pl)
-    return PlaylistOut(id=pl.id, name=pl.name, music_filename=pl.music_filename, music_path=pl.music_path, audio_mode=pl.audio_mode or "video", item_count=0, created_at=pl.created_at)
+    return PlaylistOut(id=pl.id, name=pl.name, music_filename=pl.music_filename, music_path=pl.music_path, audio_mode=getattr(pl, 'audio_mode', 'video') or "video", item_count=0, created_at=pl.created_at)
 
 
 @router.delete("/lists/{playlist_id}")
@@ -459,7 +459,7 @@ async def get_playlist_version(
         version=version_hash,
         refresh_seconds=settings.PLAYLIST_REFRESH_SECONDS,
         music_url=playlist_obj.music_path if playlist_obj else None,
-        audio_mode=playlist_obj.audio_mode if playlist_obj else "video",
+        audio_mode=getattr(playlist_obj, 'audio_mode', 'video') or "video" if playlist_obj else "video",
     )
 
 
