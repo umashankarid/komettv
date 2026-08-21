@@ -405,7 +405,7 @@
                     const video = document.createElement('video');
                     video.autoplay = true;
                     video.playsInline = true;
-                    video.muted = (currentAudioMode === 'music' && playlistMusic);
+                    video.muted = (currentAudioMode === 'music' && playlistMusic && !playlistMusic.paused);
                     video.preload = 'auto';
                     video.setAttribute('webkit-playsinline', '');
                     video.setAttribute('x5-playsinline', '');
@@ -423,18 +423,24 @@
                     source.type = 'video/mp4';
                     video.appendChild(source);
                     video.load();
-                    // Play with fallback - if it fails, try muted (autoplay policy)
+                    // Play video
                     video.play().catch(() => {
-                        video.muted = true;
-                        video.play().catch(() => {});
+                        // Autoplay blocked - only mute as last resort
+                        if (currentAudioMode === 'music') {
+                            video.muted = true;
+                            video.play().catch(() => {});
+                        } else {
+                            // In video audio mode, try playing anyway (TV Bro usually allows)
+                            video.play().catch(() => {});
+                        }
                     });
-                    // If video doesn't start within 3 seconds, skip
+                    // If video doesn't start within 5 seconds, skip
                     setTimeout(() => {
                         if (video.readyState < 2 && video.paused) {
                             console.log('Video failed to load, skipping');
                             advanceSlide();
                         }
-                    }, 3000);
+                    }, 5000);
                     slide.appendChild(video);
                     break;
 
