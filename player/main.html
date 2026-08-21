@@ -295,6 +295,14 @@
             if (bgMusic && bgMusic.paused) {
                 bgMusic.play().catch(() => {});
             }
+            // Unmute current video if playing
+            if (currentSlide) {
+                const video = currentSlide.querySelector('video');
+                if (video && currentAudioMode !== 'music') {
+                    video.muted = false;
+                    video.play().catch(() => {});
+                }
+            }
         }
 
         function showAudioUnlock() {
@@ -422,7 +430,19 @@
                     video.play().then(() => {
                         // Unmute after playback starts (if in video audio mode)
                         if (currentAudioMode !== 'music') {
-                            video.muted = false;
+                            if (audioUnlocked) {
+                                video.muted = false;
+                            } else {
+                                video.muted = false;
+                                // If unmuting causes pause (autoplay policy), keep muted and show overlay
+                                setTimeout(() => {
+                                    if (video.paused) {
+                                        video.muted = true;
+                                        video.play().catch(() => {});
+                                        showAudioUnlock();
+                                    }
+                                }, 100);
+                            }
                         }
                     }).catch(() => {});
                     // If video doesn't start within 5 seconds, skip

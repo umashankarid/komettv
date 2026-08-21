@@ -51,6 +51,12 @@ app.include_router(upload_links_router)
 
 
 # Serve TV player at /display/main and /display/{slug}
+@app.get("/favicon.ico")
+async def favicon():
+    from fastapi.responses import Response
+    return Response(content=b"", media_type="image/x-icon")
+
+
 @app.get("/display/{slug}")
 async def serve_player(slug: str):
     response = FileResponse("player/main.html", media_type="text/html")
