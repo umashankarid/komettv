@@ -403,41 +403,31 @@
 
                 case 'video':
                     const video = document.createElement('video');
-                    video.autoplay = true;
                     video.playsInline = true;
-                    video.muted = (currentAudioMode === 'music' && playlistMusic && !playlistMusic.paused);
                     video.preload = 'auto';
                     video.setAttribute('webkit-playsinline', '');
                     video.setAttribute('x5-playsinline', '');
-                    // Force compatible playback for Instagram/social media videos
                     video.style.width = '100%';
                     video.style.height = '100%';
                     video.style.objectFit = 'contain';
-                    // Explicitly reset and load to prevent WebView freezing
-                    video.pause();
-                    video.removeAttribute('src');
-                    video.load();
+                    // Start muted to guarantee autoplay works, then unmute
+                    video.muted = true;
+                    video.autoplay = true;
                     // Use source element for better codec negotiation
                     const source = document.createElement('source');
                     source.src = item.data.url + cacheBust;
                     source.type = 'video/mp4';
                     video.appendChild(source);
                     video.load();
-                    // Play video
-                    video.play().catch(() => {
-                        // Autoplay blocked - only mute as last resort
-                        if (currentAudioMode === 'music') {
-                            video.muted = true;
-                            video.play().catch(() => {});
-                        } else {
-                            // In video audio mode, try playing anyway (TV Bro usually allows)
-                            video.play().catch(() => {});
+                    video.play().then(() => {
+                        // Unmute after playback starts (if in video audio mode)
+                        if (currentAudioMode !== 'music') {
+                            video.muted = false;
                         }
-                    });
+                    }).catch(() => {});
                     // If video doesn't start within 5 seconds, skip
                     setTimeout(() => {
                         if (video.readyState < 2 && video.paused) {
-                            console.log('Video failed to load, skipping');
                             advanceSlide();
                         }
                     }, 5000);
